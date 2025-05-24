@@ -50,6 +50,28 @@ export default async function handler(req, res) {
         const bot = new TelegramBot(TELEGRAM_BOT_TOKEN); // Inisialisasi di sini hanya untuk mengirim
         await bot.sendMessage(chatId, textResponse);
 
+        // Di dalam handler webhook bot Telegram Anda
+        // ... setelah memproses pesan pengguna dan mendapatkan balasan dari Gemini ...
+
+        const monetagDirectLink = "https://otieu.com/4/9375223"; // Ganti dengan Direct Link Anda
+
+        // Kirim balasan Gemini sudah dilakukan di atas
+        // await bot.sendMessage(chatId, `🤖 Gemini AI:\n${textResponse}`); // Baris ini duplikat jika textResponse sudah dikirim
+
+        // Kirim pesan terpisah dengan direct link (atau gabungkan dengan bijak)
+        // Pertimbangkan untuk membuatnya kontekstual
+        if (userMessage.toLowerCase().includes("bantuan") || Math.random() < 0.2) { // Contoh kondisi
+            await bot.sendMessage(chatId, `Untuk mendukung layanan kami, kunjungi: ${monetagDirectLink}`);
+            // Atau gunakan inline keyboard
+            // await bot.sendMessage(chatId, "Dapatkan info lebih lanjut atau dukung kami:", {
+            //   reply_markup: {
+            //     inline_keyboard: [
+            //       [{ text: "Kunjungi Sponsor Kami", url: monetagDirectLink }]
+            //     ]
+            //   }
+            // });
+        }
+
         res.status(200).json({ status: 'success', response: textResponse });
       } else {
         res.status(200).json({ status: 'no message text' });
