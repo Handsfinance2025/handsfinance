@@ -13,10 +13,7 @@ interface LayoutProps {
   children: ReactNode;
 }
 
-export const metadata = { // metadata biasanya tidak digunakan di client component layout
-  title: 'Aplikasi Saya',
-  description: 'Dibangun dengan Next.js, Tailwind, dan Ionic',
-};
+
 
 export default function RootLayout({ children }: LayoutProps) {
   return (
