@@ -3,62 +3,58 @@
 import Image from 'next/image'; // Contoh import yang mungkin sudah ada
 import { useState, useEffect, useCallback, useRef } from 'react'; // Tambahkan useRef jika Anda menggunakan ref untuk kamera
 
-// Jika Anda menggunakan pustaka kamera, import di sini
-// import Webcam from 'react-webcam'; // Contoh
 
-// --- AWAL PENAMBAHAN KODE UNTUK MONETAG & PEMINDAIAN --- 
+const MONETAG_REWARDED_POPUP_ZONE_ID = 9375207; // <--- GANTI INI
 
-// Sebaiknya deklarasi global ini ada di file .d.ts terpisah (misalnya, monetag.d.ts atau global.d.ts)
-// agar tidak perlu diulang di setiap file.
-// Contoh: src/types/monetag.d.ts
-// declare global {
-//   interface Window {
-//     monetag?: {
-//       rewarded?: {
-//         showAd: (zoneId: number) => void;
-//         on: (event: string, callback: (...args: any[]) => void) => void;
-//         off: (event: string, callback: (...args: any[]) => void) => void;
-//       };
-//       // Tambahkan definisi lain sesuai kebutuhan SDK Monetag Anda
-//     };
-//     // Untuk kasus data-sdk='show_ZONEID'
-//     [key: `show_${string}`]: (() => void) | undefined;
-//   }
-// }
+import Card from './ui/Card';
 
-// GANTI DENGAN ID ZONA POP-UP REWARD ANDA YANG SEBENARNYA DARI MONETAG
-const MONETAG_REWARDED_POPUP_ZONE_ID = 1234567; // <--- GANTI INI
-
-// --- AKHIR PENAMBAHAN KODE UNTUK MONETAG & PEMINDAIAN ---
+const FeedCard = ({ title, type, text, author, authorAvatar, image }: { title: string, type: string, text: string, author: string, authorAvatar: string, image: string }) => (
+  <Card className="my-4 mx-auto">
+    <div>
+      <img className="rounded-t-xl h-32 w-full object-cover" src={image} alt={title} />
+    </div>
+    <div className="px-4 py-4 bg-white rounded-b-xl dark:bg-gray-900">
+      <h4 className="font-bold py-0 text-s text-gray-400 dark:text-gray-500 uppercase">
+        {type}
+      </h4>
+      <h2 className="font-bold text-2xl text-gray-800 dark:text-gray-100">
+        {title}
+      </h2>
+      <p className="sm:text-sm text-s text-gray-500 mr-1 my-3 dark:text-gray-400">
+        {text}
+      </p>
+      <div className="flex items-center space-x-4">
+        <img src={authorAvatar} className="rounded-full w-10 h-10" alt={author} />
+        <h3 className="text-gray-500 dark:text-gray-200 m-l-8 text-sm font-medium">
+          {author}
+        </h3>
+      </div>
+    </div>
+  </Card>
+);
 
 export default function HomePage() {
-  // ... state dan logika yang sudah ada di HomePage Anda ...
-  // Contoh: const [someExistingState, setSomeExistingState] = useState('');
 
-  // --- AWAL PENAMBAHAN STATE DAN FUNGSI UNTUK FITUR BARU ---
   const [isMonetagSdkReady, setIsMonetagSdkReady] = useState(false);
   const [feedbackMessage, setFeedbackMessage] = useState(''); // Untuk pesan ke pengguna
 
-  // Ref untuk komponen kamera jika diperlukan
-  // const webcamRef = useRef<Webcam>(null); // Contoh jika menggunakan react-webcam
-
   useEffect(() => {
-    // Memeriksa apakah SDK Monetag sudah siap
+  
     const checkSdkInterval = setInterval(() => {
-      // Cek berdasarkan cara SDK Anda diekspos: window.monetag atau window.show_ZONEID
+
       const sdkGlobalObject = window.monetag;
       const sdkSpecificFunction = window[`show_${MONETAG_REWARDED_POPUP_ZONE_ID}` as keyof Window];
 
       if (sdkGlobalObject || typeof sdkSpecificFunction === 'function') {
         console.log('Monetag SDK is ready on HomePage.');
         setIsMonetagSdkReady(true);
-        clearInterval(checkSdkInterval); // Hentikan pengecekan jika sudah siap
+        clearInterval(checkSdkInterval);
       } else {
         console.log('Monetag SDK not yet ready on HomePage, waiting...');
       }
-    }, 1000); // Cek setiap 1 detik
+    }, 1000);
 
-    return () => clearInterval(checkSdkInterval); // Cleanup interval saat komponen unmount
+    return () => clearInterval(checkSdkInterval);
   }, []);
 
   const showRewardedPopupAd = useCallback(() => {
@@ -71,8 +67,6 @@ export default function HomePage() {
     console.log('Attempting to show Monetag rewarded popup ad...');
     setFeedbackMessage('Memuat iklan pop-up...');
 
-    // Panggil fungsi iklan Monetag sesuai dokumentasi Anda
-    // Opsi 1: Menggunakan fungsi global spesifik zona (jika ada dari data-sdk)
     const specificZoneFunction = window[`show_${MONETAG_REWARDED_POPUP_ZONE_ID}` as keyof Window] as (() => void) | undefined;
     if (typeof specificZoneFunction === 'function') {
       try {
@@ -82,7 +76,7 @@ export default function HomePage() {
         setFeedbackMessage('Gagal menampilkan iklan pop-up (err SF).');
       }
     } 
-    // Opsi 2: Menggunakan objek monetag global
+   
     else if (window.monetag && window.monetag.rewarded && typeof window.monetag.rewarded.showAd === 'function') {
       try {
         window.monetag.rewarded.showAd(MONETAG_REWARDED_POPUP_ZONE_ID);
@@ -96,34 +90,30 @@ export default function HomePage() {
     }
   }, [isMonetagSdkReady]);
 
-  // Fungsi ini akan Anda panggil dari logika pemindaian kamera Anda
+
   const handleCameraScanSuccess = useCallback(() => {
     console.log('Camera scan successful! Triggering Monetag popup ad.');
     setFeedbackMessage('Pemindaian berhasil! Menampilkan hadiah...');
     showRewardedPopupAd();
-    // Di sini Anda juga bisa menambahkan logika untuk memberikan reward aktual kepada pengguna
-    // setelah mereka berinteraksi dengan iklan (membutuhkan event listener Monetag)
+
   }, [showRewardedPopupAd]);
 
-  // --- IMPLEMENTASIKAN LOGIKA PEMINDAIAN KAMERA ANDA DI SINI ---
-  // Contoh simulasi sederhana:
+
   const simulateCameraScanAndTriggerAd = () => {
     if (!isMonetagSdkReady) {
       setFeedbackMessage('SDK Iklan belum siap untuk memulai pemindaian.');
       return;
     }
     setFeedbackMessage('Memulai simulasi pemindaian kamera...');
-    // TODO: Ganti ini dengan logika pemindaian kamera Anda yang sebenarnya.
-    // Misalnya, aktifkan kamera, tunggu pengguna memindai sesuatu.
-    // Setelah pemindaian berhasil:
+ 
     setTimeout(() => { // Simulasi penundaan untuk pemindaian
       console.log('Simulated camera scan successful.');
       handleCameraScanSuccess(); 
     }, 2000); // Anggap pemindaian butuh 2 detik
   };
-  // --- AKHIR IMPLEMENTASI LOGIKA PEMINDAIAN KAMERA ---
+ 
 
-  // --- AKHIR PENAMBAHAN STATE DAN FUNGSI UNTUK FITUR BARU ---
+  const [showNotifications, setShowNotifications] = useState(false);
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-between p-24">
