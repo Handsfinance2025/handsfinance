@@ -14,7 +14,6 @@ interface LayoutProps {
 }
 
 
-
 export default function RootLayout({ children }: LayoutProps) {
   return (
     <html lang="id">

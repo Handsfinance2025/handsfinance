@@ -91,7 +91,7 @@ const Modern3DBarChart = ({ data, barColor = colors.chartBarColor, barAccentColo
           return (
             <div key={index} className="flex-1 flex flex-col items-center group relative">
               {/* Value Tooltip */}
-              <div
+              <div 
                 className="absolute -top-8 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-300
                            bg-gray-700 text-white text-xs px-2 py-1 rounded-md shadow-lg whitespace-nowrap z-10">
                 {item.label}: {item.value}
@@ -118,7 +118,7 @@ const Modern3DBarChart = ({ data, barColor = colors.chartBarColor, barAccentColo
                 />
               </div>
               {/* Label */}
-              <div
+              <div 
                 style={{ color: colors.darkGreenGray }}
                 className="mt-2 text-xs sm:text-sm text-center truncate w-full px-1 group-hover:font-semibold"
               >
@@ -159,15 +159,6 @@ export default function HomePage() {
     { label: "Jul", value: 40, color: '#F44336' },
   ]);
 
-  // User details state
-  const [userDetails, setUserDetails] = useState({
-    name: "Pengguna Demo",
-    portfolioJournal: "Jurnal Trading A",
-    tradingRisk: "Medium",
-    tradingType: "Swing Trader"
-  });
-
-
   // Simulate data update for dynamic effect (optional)
   useEffect(() => {
     const interval = setInterval(() => {
@@ -184,59 +175,31 @@ export default function HomePage() {
 
   return (
     <div style={{ backgroundColor: colors.lightGray }} className="min-h-screen flex flex-col font-sans">
-      {/* Header */}
+      {/* Header dengan Pencarian */}
       <header style={{ backgroundColor: colors.darkGreenGray }} className="p-4 sm:p-6 shadow-lg sticky top-0 z-50">
         <div className="container mx-auto flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0">
           <h1 style={{ color: colors.lightGray }} className="text-2xl sm:text-3xl font-bold tracking-tight">
-            Hands
+            Dasbor Analitik
           </h1>
-          {/* Placeholder for other header elements if needed, e.g., user avatar, notifications */}
+          <div className="relative w-full sm:w-72 md:w-96">
+            <input
+              type="search"
+              placeholder="Cari fitur, materi, atau pasar..."
+              style={{
+                backgroundColor: colors.lightGray,
+                borderColor: colors.ashGray,
+                color: colors.darkGreenGray,
+              }}
+              className={`w-full p-3 pl-10 rounded-lg border text-sm focus:ring-2 focus:ring-[${colors.primaryGreen}] focus:border-[${colors.primaryGreen}] outline-none transition-shadow`}
+            />
+            <SearchIcon style={{ color: colors.primaryGreen }} className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2" />
+          </div>
         </div>
       </header>
 
       {/* Konten Utama */}
       <main style={{ backgroundColor: colors.softBackground }} className="flex-grow p-4 sm:p-6 lg:p-8">
         <div className="container mx-auto">
-          {/* User Info Section */}
-          <section className="mb-6 p-4 rounded-xl shadow-md" style={{backgroundColor: colors.white, borderColor: colors.ashGray}}>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
-              <div>
-                <span className="font-semibold" style={{color: colors.darkGreenGray}}>Nama: </span>
-                <span style={{color: colors.primaryGreen}}>{userDetails.name}</span>
-              </div>
-              <div>
-                <span className="font-semibold" style={{color: colors.darkGreenGray}}>Portofolio (Jurnal): </span>
-                <span style={{color: colors.primaryGreen}}>{userDetails.portfolioJournal}</span>
-              </div>
-              <div>
-                <span className="font-semibold" style={{color: colors.darkGreenGray}}>Resiko Trading: </span>
-                <span style={{color: colors.primaryGreen}}>{userDetails.tradingRisk}</span>
-              </div>
-              <div>
-                <span className="font-semibold" style={{color: colors.darkGreenGray}}>Tipe Trading: </span>
-                <span style={{color: colors.primaryGreen}}>{userDetails.tradingType}</span>
-              </div>
-            </div>
-          </section>
-
-          {/* Search Bar Section */}
-          <section className="mb-8 sm:mb-12">
-            <div className="relative w-full md:w-2/3 lg:w-1/2 mx-auto">
-              <input
-                type="search"
-                placeholder="Cari fitur, materi, atau pasar..."
-                style={{
-                  backgroundColor: colors.white, // Changed to white for better contrast on softBackground
-                  borderColor: colors.ashGray,
-                  color: colors.darkGreenGray,
-                }}
-                className={`w-full p-3 pl-10 rounded-lg border text-sm focus:ring-2 focus:ring-[${colors.primaryGreen}] focus:border-[${colors.primaryGreen}] outline-none transition-shadow shadow-sm`}
-              />
-              <SearchIcon style={{ color: colors.primaryGreen }} className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2" />
-            </div>
-          </section>
-
-
           {/* Bagian Menu Utama */}
           <section className="mb-8 sm:mb-12">
             <h2 style={{ color: colors.darkGreenGray }} className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-6">
