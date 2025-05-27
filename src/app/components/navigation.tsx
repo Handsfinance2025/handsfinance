@@ -22,7 +22,7 @@ const IconHome = ({ active, className, ...props }: { active: boolean } & SVGProp
     fill={active ? "currentColor" : "none"} // Diisi jika aktif
     viewBox="0 0 24 24" 
     stroke="currentColor" // Warna stroke diambil dari text color parent
-    strokeWidth={active ? 2 : 1.5} 
+    strokeWidth={active ? 2.2 : 1.8} // Sedikit lebih tebal jika aktif
     className={className}
     {...props}
   >
@@ -35,7 +35,7 @@ const IconGlobe = ({ active, className, ...props }: { active: boolean } & SVGPro
     xmlns="http://www.w3.org/2000/svg" 
     fill="none" 
     viewBox="0 0 24 24" 
-    strokeWidth={active ? 2 : 1.5} 
+    strokeWidth={active ? 2.2 : 1.8} 
     stroke="currentColor" 
     className={className}
     {...props}
@@ -44,19 +44,19 @@ const IconGlobe = ({ active, className, ...props }: { active: boolean } & SVGPro
   </svg>
 );
 
-const IconScan = ({ active, className, ...props }: { active: boolean } & SVGProps<SVGSVGElement>) => ( // Ikon baru untuk Scanner
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={active ? 2 : 1.5} stroke="currentColor" className={className} {...props}>
+const IconScan = ({ active, className, ...props }: { active: boolean } & SVGProps<SVGSVGElement>) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={active ? 2.2 : 1.8} stroke="currentColor" className={className} {...props}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h.375c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125h-.375A1.125 1.125 0 0 1 3.75 6.375v-1.5Zm0 9.75c0-.621.504-1.125 1.125-1.125h.375c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125h-.375a1.125 1.125 0 0 1-1.125-1.125v-1.5Zm9.75-9.75c0-.621.504-1.125 1.125-1.125h.375c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125h-.375a1.125 1.125 0 0 1-1.125-1.125v-1.5Zm0 9.75c0-.621.504-1.125 1.125-1.125h.375c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125h-.375a1.125 1.125 0 0 1-1.125-1.125v-1.5Z" />
         <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 12h9" />
     </svg>
 );
 
-const IconChat = ({ active, className, ...props }: { active: boolean } & SVGProps<SVGSVGElement>) => ( // Menggunakan IconWindow sebagai Chat
+const IconChat = ({ active, className, ...props }: { active: boolean } & SVGProps<SVGSVGElement>) => ( 
   <svg 
     xmlns="http://www.w3.org/2000/svg" 
     fill="none" 
     viewBox="0 0 24 24" 
-    strokeWidth={active ? 2 : 1.5} 
+    strokeWidth={active ? 2.2 : 1.8} 
     stroke="currentColor" 
     className={className}
     {...props}
@@ -65,12 +65,12 @@ const IconChat = ({ active, className, ...props }: { active: boolean } & SVGProp
   </svg>
 );
 
-const IconUser = ({ active, className, ...props }: { active: boolean } & SVGProps<SVGSVGElement>) => ( // Menggunakan IconList sebagai Profile
+const IconUser = ({ active, className, ...props }: { active: boolean } & SVGProps<SVGSVGElement>) => ( 
   <svg 
     xmlns="http://www.w3.org/2000/svg" 
     fill="none" 
     viewBox="0 0 24 24" 
-    strokeWidth={active ? 2 : 1.5} 
+    strokeWidth={active ? 2.2 : 1.8} 
     stroke="currentColor" 
     className={className}
     {...props}
@@ -83,7 +83,7 @@ const IconUser = ({ active, className, ...props }: { active: boolean } & SVGProp
 const navItems = [
   { href: "/", label: "Home", icon: IconHome },
   { href: "/news", label: "News", icon: IconGlobe }, 
-  { href: "/scanner", label: "Scanner", icon: IconScan }, 
+  { href: "/scanner", label: "Analisis", icon: IconScan }, 
   { href: "/chat", label: "Chat", icon: IconChat },
   { href: "/profile", label: "Profile", icon: IconUser },
 ];
@@ -93,31 +93,36 @@ export default function BottomNav() {
   return (
     <nav 
         style={{ backgroundColor: colors.white, borderColor: colors.ashGray }}
-        // Menambah max-w-md dan mx-auto untuk mengehadkan lebar pada skrin besar,
-        // sambil mengekalkan left-0 dan right-0 untuk memastikan ia tetap di tengah apabila fixed.
         className="fixed bottom-0 left-0 right-0 mx-auto max-w-md border-t rounded-t-2xl sm:rounded-t-3xl shadow-[0_-5px_20px_-5px_rgba(78,111,92,0.2)] z-50" 
     >
-      <div className="flex justify-around items-stretch h-16 sm:h-20 px-1"> {/* items-stretch agar Link mengisi tinggi */}
+      <div className="flex justify-around items-stretch h-16 sm:h-20 px-1">
         {navItems.map((item) => {
           const isActive = pathname === item.href;
+          // Kelas-kelas untuk item aktif: latar belakang hijau, bayang-bayang, transformasi, dan sudut membulat.
+          const activeClasses = `bg-[${colors.primaryGreen}] shadow-xl shadow-[${colors.primaryGreen}]/40 transform scale-110 sm:scale-[1.12] -translate-y-1.5 sm:-translate-y-2 rounded-xl`;
+          // Kelas untuk item tidak aktif: efek hover.
+          const inactiveClasses = `hover:bg-[${colors.lightGray}] rounded-lg`; 
+
           return (
             <Link
               key={item.label}
               href={item.href}
-              className={`flex flex-col items-center justify-center text-xs p-1 sm:p-2 transition-all duration-300 ease-out flex-1 text-center group relative rounded-lg
-                ${isActive 
-                    ? `bg-[${colors.primaryGreen}] shadow-lg shadow-[${colors.primaryGreen}]/30 transform scale-105 -translate-y-1` 
-                    : `hover:bg-[${colors.lightGray}]`
-                }`
+              // 'transition-all duration-300 ease-out' adalah kunci untuk animasi yang lancar.
+              // Apabila 'isActive' berubah, kelas-kelas di atas akan ditambah/dibuang,
+              // dan Tailwind akan menganimasikan perubahan pada 'background-color', 'box-shadow', 'transform', dll.
+              className={`flex flex-col items-center justify-center text-xs p-1 sm:p-2 transition-all duration-300 ease-in-out flex-1 text-center group relative 
+                ${isActive ? activeClasses : inactiveClasses}`
               }
             >
               <item.icon 
                 active={isActive} 
-                className={`w-5 h-5 sm:w-6 sm:h-6 mb-0.5 transition-all duration-200 group-hover:scale-110 
+                // Ikon juga mempunyai transisi sendiri untuk warna dan skala.
+                className={`w-5 h-5 sm:w-6 sm:h-6 mb-0.5 transition-all duration-200 ease-in-out group-hover:scale-110 
                     ${isActive ? `text-[${colors.white}]` : `text-[${colors.darkGreenGray}] group-hover:text-[${colors.primaryGreen}]`}`
                 }
               />
               <span 
+                // Label juga mempunyai transisi warna.
                 className={`text-[10px] sm:text-xs whitespace-nowrap font-medium transition-colors duration-200 
                     ${isActive ? `text-[${colors.white}]` : `text-[${colors.darkGreenGray}] group-hover:text-[${colors.primaryGreen}]`}`
                 }

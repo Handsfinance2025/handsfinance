@@ -337,15 +337,6 @@ export default function HomePage() {
           </section>
         </div>
       </main>
-
-      {/* Footer */}
-      <footer style={{ backgroundColor: colors.darkGreenGray }} className="p-4 sm:p-6 mt-auto">
-        <div className="container mx-auto text-center">
-          <p style={{ color: colors.ashGray }} className="text-xs sm:text-sm">
-            &copy; {new Date().getFullYear()} Aplikasi Analitik Anda. Semua hak cipta dilindungi.
-          </p>
-        </div>
-      </footer>
     </div>
   );
 }

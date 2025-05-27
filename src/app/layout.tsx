@@ -4,6 +4,7 @@
 import { Inter } from "next/font/google";
 import "./globals.css"; // Pastikan file CSS global Anda mengimpor Tailwind
 import BottomNav from "./components/navigation"; // Path impor dari kode pengguna
+import Script from 'next/script';
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -12,8 +13,6 @@ import { ReactNode } from 'react';
 interface LayoutProps {
   children: ReactNode;
 }
-
-
 export default function RootLayout({ children }: LayoutProps) {
   return (
     <html lang="id">
@@ -21,9 +20,21 @@ export default function RootLayout({ children }: LayoutProps) {
         <div className="container mx-auto max-w-md min-h-screen flex flex-col">
           <main className="flex-grow pt-5 pb-20">{/* Padding untuk header (jika ada) dan bottom nav */}
             {children}
+            <Script 
+          src="https://inapp.telega.io/sdk/v1/sdk.js" 
+          strategy="afterInteractive" // Muat setelah halaman interaktif
+          onError={(e) => {
+            console.error('TelegaIn SDK failed to load', e);
+          }}
+          
+        />
+        <script src='//libtl.com/sdk.js' data-zone='9375207' data-sdk='show_9375207'></script>
+            
           </main>
           <BottomNav />
+          
         </div>
+        
       </body>
     </html>
   );
