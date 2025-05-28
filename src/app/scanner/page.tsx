@@ -6,7 +6,7 @@ import { Camera, AlertCircle, CheckCircle2, Star, ShieldOff, UploadCloud, XCircl
 // npm install monetag-tg-sdk
 // or
 // yarn add monetag-tg-sdk
-import createAdHandler from 'monetag-tg-sdk'; // Assuming this is the correct import path
+import createAdHandler from 'monetag-tg-sdk'; 
 
 // --- KONFIGURASI WARNA ---
 const colors = {
@@ -21,9 +21,7 @@ const colors = {
 };
 
 // --- KONFIGURASI MONETAG ---
-// MONETAG_SDK_URL is no longer needed as monetag-tg-sdk should handle SDK loading.
 const MONETAG_REWARDED_INTERSTITIAL_ZONE_ID: number = 9375207; 
-// MONETAG_PRELOAD_EVENT_ID and MONETAG_SHOW_AD_EVENT_ID_PREFIX might not be used by the new SDK in the same way.
 
 // --- KONFIGURASI TELEGAIN ---
 const TELEGAIN_SDK_URL = "https://inapp.telega.io/sdk/v1/sdk.js";
@@ -37,39 +35,9 @@ const TELEGAIN_TOKEN_FOR_SDK_INIT = IS_TELEGAIN_TOKEN_EXPLICITLY_SET_IN_ENV
   ? process.env.NEXT_PUBLIC_TELEGAIN_APP_TOKEN
   : TELEGAIN_APP_TOKEN_PLACEHOLDER;
 
-// --- TelegaIn SDK Interfaces ---
-interface TelegaAdInstance {
-  ad_show: (options: { adBlockUuid: string }) => void;
-}
-
-interface TelegaInAdsController {
-  create_miniapp: (options: { token: string }) => TelegaAdInstance | null;
-}
-
-// --- Deklarasi Global Terpadu untuk window ---
-declare global {
-  interface Window {
-    TelegaInController?: TelegaInAdsController;
-    TelegaIn?: {
-      AdsController?: TelegaInAdsController;
-    };
-    Telegram?: {
-      WebApp?: {
-        ready: () => void;
-      };
-    };
-    // window.monetag might not be used directly if monetag-tg-sdk abstracts it.
-    // However, keeping it for now in case other parts of an app might rely on it,
-    // but the primary ad showing mechanism will use createAdHandler.
-    monetag?: {
-      rewardedInterstitial?: {
-        showAd: (zoneId: number, options?: any) => void; // Options type might differ
-      };
-      [key: string]: any;
-    };
-     [key: `show_${number}`]: ((options?: any) => Promise<void> | void) | undefined;
-  }
-}
+// Interface TelegaIn SDK sekarang seharusnya diambil dari global.d.ts
+// Tidak perlu mendefinisikan interface TelegaAdInstance dan TelegaInAdsController di sini
+// jika sudah ada di global.d.ts
 
 // --- Custom External Script Loader Component (Only for TelegaIn now) ---
 interface ExternalScriptLoaderProps {
@@ -85,26 +53,21 @@ const ExternalScriptLoader: React.FC<ExternalScriptLoaderProps> = ({ id, src, on
     if (existingScript) {
       existingScript.remove();
     }
-
     const script = document.createElement('script');
     script.id = id;
     script.src = src;
     script.async = true;
-
     const handleLoad = () => {
       console.log(`Script ${id} loaded successfully from ${src}`);
       if (onLoad) onLoad();
     };
-
     const handleError = (event: Event | string) => {
       console.error(`Error loading script ${id} from ${src}:`, event);
       if (onError) onError();
     };
-
     script.addEventListener('load', handleLoad);
     script.addEventListener('error', handleError);
     document.body.appendChild(script);
-
     return () => {
       script.removeEventListener('load', handleLoad);
       script.removeEventListener('error', handleError);
@@ -114,29 +77,26 @@ const ExternalScriptLoader: React.FC<ExternalScriptLoaderProps> = ({ id, src, on
       }
     };
   }, [id, src, onLoad, onError]);
-
   return null;
 };
 
-
 // --- KOMPONEN UTAMA ScannerPage ---
 export default function ScannerPage() {
-  // State Monetag - isMonetagSdkLoaded, isMonetagApiReady, isMonetagAdPreloaded are removed
-  // as their roles are likely handled by monetag-tg-sdk.
   const [isMonetagAdShowing, setIsMonetagAdShowing] = useState(false);
-  const monetagAdHandlerRef = useRef<(() => Promise<void>) | null>(null); // To store the handler from createAdHandler
-  const monetagAdTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const monetagAdHandlerRef = useRef<(() => Promise<void>) | null>(null);
 
-
-  // State TelegaIn
   const [isTelegaInSdkLoaded, setIsTelegaInSdkLoaded] = useState(false);
-  const [telegaAdsInstance, setTelegaAdsInstance] = useState<TelegaAdInstance | null>(null);
+  // Tipe TelegaAdInstance sekarang harusnya dikenali dari global.d.ts
+  // Kita akan menggunakan tipe yang lebih aman berdasarkan definisi di global.d.ts
+  const [telegaAdsInstance, setTelegaAdsInstance] = useState<any | null>(null);
   const [isTelegaAdShowing, setIsTelegaAdShowing] = useState(false);
   const telegaAdTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const [feedbackMessage, setFeedbackMessage] = useState('Sedang memuat fitur, mohon tunggu...');
   const [feedbackType, setFeedbackType] = useState<'success' | 'error' | 'info'>('info');
-  const [isScanning, setIsScanning] = useState(false);
+  const [isScanningActive, setIsScanningActive] = useState(false); 
+  const [isAdLoading, setIsAdLoading] = useState(false); 
+
   const [isProMode, setIsProMode] = useState(false);
   const [uploadedImage, setUploadedImage] = useState<File | null>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
@@ -157,34 +117,31 @@ export default function ScannerPage() {
       if (typeof createAdHandler === 'function') {
         monetagAdHandlerRef.current = createAdHandler(MONETAG_REWARDED_INTERSTITIAL_ZONE_ID);
         console.log('Monetag ad handler created for Zone ID:', MONETAG_REWARDED_INTERSTITIAL_ZONE_ID);
-        // Assuming the handler is ready to be used once created.
-        // If createAdHandler itself is async or has a callback for readiness, this would need adjustment.
       } else {
         console.error('createAdHandler is not a function. Ensure monetag-tg-sdk is correctly installed and imported.');
-        setFeedbackMessage('Gagal menginisialisasi SDK Iklan Monetag (handler tidak tersedia).');
+        setFeedbackMessage('Gagal inisialisasi SDK Iklan Monetag (handler).');
         setFeedbackType('error');
       }
-    } catch (error) {
+    } catch (error: any) { 
         console.error('Error initializing Monetag ad handler:', error);
         setFeedbackMessage(`Error Monetag: ${error instanceof Error ? error.message : String(error)}`);
         setFeedbackType('error');
     }
-  }, []); // Initialize once on mount
+  }, []); 
 
-  
   // --- TelegaIn SDK Handlers ---
   const handleTelegaInScriptLoad = useCallback(() => {
-    console.log('TelegaIn SDK script has loaded from:', TELEGAIN_SDK_URL);
+    console.log('TelegaIn SDK script has loaded.');
     setIsTelegaInSdkLoaded(true);
-     if (!(feedbackMessage.startsWith('GAGAL memuat skrip TelegaIn') || feedbackMessage.includes('Token Aplikasi TelegaIn'))) {
+      if (!(feedbackMessage.startsWith('GAGAL memuat skrip TelegaIn') || feedbackMessage.includes('Token Aplikasi TelegaIn'))) {
         setFeedbackMessage('Skrip TelegaIn dimuat. Inisialisasi...');
         setFeedbackType('info');
     }
   }, [feedbackMessage]);
 
   const handleTelegaInScriptError = useCallback(() => {
-    console.error(`Failed to load TelegaIn SDK script from: ${TELEGAIN_SDK_URL}. Check ad blockers, network, and SDK URL.`);
-    setFeedbackMessage(`GAGAL memuat skrip TelegaIn dari ${TELEGAIN_SDK_URL}. Nonaktifkan Ad Blocker & periksa koneksi.`);
+    console.error(`Failed to load TelegaIn SDK script from: ${TELEGAIN_SDK_URL}.`);
+    setFeedbackMessage(`GAGAL memuat skrip TelegaIn. Periksa koneksi & Ad Blocker.`);
     setFeedbackType('error');
     setIsTelegaInSdkLoaded(false);
   }, []); 
@@ -192,89 +149,77 @@ export default function ScannerPage() {
   // --- TelegaIn SDK Initialization ---
   useEffect(() => {
     if (isTelegaInSdkLoaded && !telegaAdsInstance && !feedbackMessage.startsWith('GAGAL memuat skrip TelegaIn')) {
-        if (!IS_TELEGAIN_TOKEN_EXPLICITLY_SET_IN_ENV) {
-            console.error('TelegaIn App Token (NEXT_PUBLIC_TELEGAIN_APP_TOKEN) was not found in environment variables.');
-            setFeedbackMessage('KRITIS: Token Aplikasi TelegaIn (NEXT_PUBLIC_TELEGAIN_APP_TOKEN) tidak ditemukan di environment.');
+        if (!IS_TELEGAIN_TOKEN_EXPLICITLY_SET_IN_ENV && TELEGAIN_TOKEN_FOR_SDK_INIT === TELEGAIN_APP_TOKEN_PLACEHOLDER) {
+            console.error('TelegaIn App Token (NEXT_PUBLIC_TELEGAIN_APP_TOKEN) not found in environment and using placeholder.');
+            setFeedbackMessage('KRITIS: Token Aplikasi TelegaIn tidak dikonfigurasi.');
             setFeedbackType('error');
             return; 
         }
         
-        const telegaInApi = window.TelegaInController || window.TelegaIn?.AdsController;
-        if (telegaInApi?.create_miniapp) {
-            console.log('TelegaIn API found, attempting to create miniapp instance with token from env:', TELEGAIN_TOKEN_FOR_SDK_INIT);
+        // Akses window.TelegaInController atau window.TelegaIn.AdsController
+        // Tipe TelegaInAdsController harusnya dikenali dari global.d.ts
+        const telegaInApi: any = window.TelegaInController || window.TelegaIn?.AdsController;
+        
+        if (telegaInApi && typeof telegaInApi.create_miniapp === 'function') {
+            console.log('TelegaIn API found, creating miniapp instance with token:', TELEGAIN_TOKEN_FOR_SDK_INIT);
             try {
                 const tokenForApi = TELEGAIN_TOKEN_FOR_SDK_INIT as string; 
                 const instance = telegaInApi.create_miniapp({ token: tokenForApi });
                 if (instance) {
-                    setTelegaAdsInstance(instance);
-                    console.log('TelegaIn miniapp instance created successfully.');
+                    setTelegaAdsInstance(instance); // Tipe instance adalah TelegaAdInstance | null
+                    console.log('TelegaIn miniapp instance created.');
                     if(feedbackMessage.includes('Token Aplikasi TelegaIn') || feedbackMessage.includes('KRITIS')) {
-                        setFeedbackMessage('Sedang memuat fitur, mohon tunggu...'); 
+                        setFeedbackMessage('Sedang memuat fitur...'); 
                         setFeedbackType('info');
                     }
                 } else {
-                    console.error('Failed to create TelegaIn miniapp instance (returned null). Token:', TELEGAIN_TOKEN_FOR_SDK_INIT);
+                    console.error('Failed to create TelegaIn miniapp instance (null). Token:', TELEGAIN_TOKEN_FOR_SDK_INIT);
                     if (!feedbackMessage.startsWith('GAGAL memuat skrip TelegaIn')) {
-                        setFeedbackMessage('Gagal membuat instance iklan TelegaIn. Periksa token/konfigurasi SDK.');
+                        setFeedbackMessage('Gagal instance iklan TelegaIn.');
                         setFeedbackType('error');
                     }
                 }
-            } catch (error) {
+            } catch (error: any) { 
                 console.error('Error creating TelegaIn miniapp instance:', error);
                 if (!feedbackMessage.startsWith('GAGAL memuat skrip TelegaIn')) {
-                    setFeedbackMessage(`Inisialisasi TelegaIn gagal: ${error instanceof Error ? error.message : String(error)}`);
+                    setFeedbackMessage(`Inisialisasi TelegaIn error: ${error instanceof Error ? error.message : String(error)}`);
                     setFeedbackType('error');
                 }
             }
         } else {
             if (!feedbackMessage.startsWith('GAGAL memuat skrip TelegaIn')) {
                 console.warn('TelegaIn API (create_miniapp) not available.');
-                setFeedbackMessage('Controller SDK TelegaIn tidak ditemukan atau struktur API berbeda.');
+                setFeedbackMessage('Controller SDK TelegaIn tidak ditemukan.');
                 setFeedbackType('error');
             }
         }
     }
-}, [isTelegaInSdkLoaded, telegaAdsInstance, feedbackMessage]);
-
+  }, [isTelegaInSdkLoaded, telegaAdsInstance, feedbackMessage]);
 
   // --- Feedback Siap Pakai ---
   useEffect(() => {
-    // Monetag readiness is now based on monetagAdHandlerRef.current being available.
     const monetagServiceReady = !!monetagAdHandlerRef.current;
-    
-    const telegaScriptOk = isTelegaInSdkLoaded;
-    const telegaFullyReady = telegaScriptOk && !!telegaAdsInstance;
+    const telegaFullyReady = isTelegaInSdkLoaded && !!telegaAdsInstance;
 
-    if (feedbackMessage.startsWith("GAGAL memuat skrip") || 
-        feedbackMessage.includes('KRITIS: Token Aplikasi TelegaIn')) {
+    if (feedbackMessage.startsWith("GAGAL memuat skrip") || feedbackMessage.includes('KRITIS:')) {
         return; 
     }
-    
-    // If Monetag handler is ready OR TelegaIn is fully ready
     if (monetagServiceReady || telegaFullyReady) {
         if (feedbackMessage.includes('memuat skrip') || 
             feedbackMessage.includes('memuat fitur') || 
             feedbackMessage.includes('Menginisialisasi') ||
-            feedbackMessage.includes('Gagal memverifikasi') || 
-            feedbackMessage.includes('Gagal membuat instance') || 
+            feedbackMessage.includes('Gagal') || 
             feedbackMessage.includes('Controller SDK') ||
-            feedbackMessage.includes('Gagal menginisialisasi SDK Iklan Monetag') || // Clear Monetag init error
-            feedbackMessage.includes('PERHATIAN: Token Aplikasi TelegaIn') 
+            feedbackMessage.includes('Token Aplikasi TelegaIn') 
             ) {
-            setFeedbackMessage('Fitur siap. Anda bisa memulai pemindaian atau unggah gambar.');
+            setFeedbackMessage('Fitur siap. Mulai pindai atau unggah gambar.');
             setFeedbackType('success');
         }
-    } 
-    // This else if might need adjustment based on how monetagServiceReady behaves if createAdHandler fails.
-    // For now, it assumes if monetagServiceReady is false, it's an issue.
-    else if ((!monetagServiceReady && typeof createAdHandler === 'function') && telegaScriptOk && !telegaFullyReady) {
-        if (!feedbackMessage.startsWith("GAGAL") && !feedbackMessage.includes('KRITIS:')) { 
-            setFeedbackMessage('Gagal menginisialisasi layanan iklan setelah skrip dimuat. Periksa konsol.');
-            setFeedbackType('error');
-        }
+    } else if (!isTelegaInSdkLoaded && !feedbackMessage.includes('GAGAL memuat skrip TelegaIn') && !feedbackMessage.includes('Monetag')) {
+        setFeedbackMessage('Sedang memuat layanan iklan...');
+        setFeedbackType('info');
     }
-  }, [telegaAdsInstance, isTelegaInSdkLoaded, feedbackMessage]); // monetagAdHandlerRef.current is stable after init
-
+  }, [telegaAdsInstance, isTelegaInSdkLoaded, feedbackMessage]);
 
   // --- Cleanup Blob URL & Timeouts ---
   useEffect(() => {
@@ -299,7 +244,6 @@ export default function ScannerPage() {
         videoRef.current.srcObject = null;
       }
       if (telegaAdTimeoutRef.current) clearTimeout(telegaAdTimeoutRef.current);
-      if (monetagAdTimeoutRef.current) clearTimeout(monetagAdTimeoutRef.current);
       if (prevImagePreviewUrlBlobRef.current?.startsWith('blob:')) {
         URL.revokeObjectURL(prevImagePreviewUrlBlobRef.current);
       }
@@ -313,19 +257,20 @@ export default function ScannerPage() {
       reader.onloadend = () => {
         const base64ImageData = reader.result?.toString().split(',')[1];
         if (base64ImageData) resolve(base64ImageData);
-        else reject(new Error('Gagal mengkonversi gambar ke base64.'));
+        else reject(new Error('Gagal konversi base64.'));
       };
-      reader.onerror = (error) => reject(new Error('Gagal membaca file gambar.'));
+      reader.onerror = (error) => reject(new Error('Gagal baca file: ' + (error instanceof ProgressEvent ? 'ProgressEvent' : String(error)) ) );
     });
   }, []);
 
   const performGeminiScanViaBackend = useCallback(async (imageFile: File | null) => {
     if (!imageFile) {
-      setFeedbackMessage('Tidak ada gambar untuk dianalisis.');
+      setFeedbackMessage('Tidak ada gambar untuk analisis.');
       setFeedbackType('error');
+      setIsScanningActive(false);
       return;
     }
-    setIsScanning(true); // Keep this for AI scan itself
+    setIsScanningActive(true); 
     setFeedbackMessage('Menganalisis gambar dengan AI...');
     setFeedbackType('info');
     const tradingPrompt = `You are a very useful assistant. Help me with determining the analisis day trading content of my market finance. The photo shows market analisis product for a trading. Determine which products are shown in the photo and return them ONLY as a text list, where each list element should contain:
@@ -348,8 +293,8 @@ export default function ScannerPage() {
         body: JSON.stringify({ prompt: tradingPrompt, imageData: base64ImageData, mimeType: imageFile.type }),
       });
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: "Gagal parsing error dari backend" }));
-        throw new Error(errorData.error || `Error dari backend (${response.status})`);
+        const errorData = await response.json().catch(() => ({ error: "Gagal parsing error backend" }));
+        throw new Error(errorData.error || `Error backend (${response.status})`);
       }
       const result = await response.json();
       if (result.text) {
@@ -360,106 +305,106 @@ export default function ScannerPage() {
       } else {
         throw new Error('Respon backend tidak valid.');
       }
-    } catch (error) {
+    } catch (error: any) { 
       console.error('Error during Gemini scan:', error);
       setFeedbackMessage(`Analisis AI gagal: ${error instanceof Error ? error.message : String(error)}`);
       setFeedbackType('error');
     } finally {
-      setIsScanning(false); // Reset scanning state for AI scan
+      setIsScanningActive(false); 
     }
   }, [convertFileToBase64]);
 
-  // --- Display Monetag Ad using monetag-tg-sdk ---
   const displayMonetagRewardedAd = useCallback(async (): Promise<boolean> => {
     if (isProMode) {
       console.log("Pro mode: Skipping Monetag ad.");
-      return Promise.resolve(true); // Simulate ad success for Pro mode to allow flow continuation
+      return true; 
     }
     if (!monetagAdHandlerRef.current) {
-      console.warn('Monetag ad handler not initialized. Skipping Monetag ad.');
-      setFeedbackMessage('Iklan Monetag belum siap. Coba lagi nanti.');
+      console.warn('Monetag ad handler not initialized.');
+      setFeedbackMessage('Iklan Monetag belum siap.');
       setFeedbackType('error');
-      return Promise.resolve(false); // Ad cannot be shown
+      return false; 
     }
     if (isMonetagAdShowing) {
-      console.log('Monetag ad already requested/showing. Skipping.');
-      return Promise.resolve(false); // Indicate ad was already showing, don't re-trigger flow
+      console.log('Monetag ad already showing.');
+      return false; 
     }
-
-    console.log(`Attempting to show Monetag Rewarded ad using monetag-tg-sdk for Zone ID: ${MONETAG_REWARDED_INTERSTITIAL_ZONE_ID}`);
+    console.log(`Attempting Monetag Rewarded ad (Zone: ${MONETAG_REWARDED_INTERSTITIAL_ZONE_ID})`);
     setFeedbackMessage('Memuat iklan Monetag...');
     setFeedbackType('info');
     setIsMonetagAdShowing(true);
-
-    if (monetagAdTimeoutRef.current) clearTimeout(monetagAdTimeoutRef.current);
+    setIsAdLoading(true);
     
     try {
       await monetagAdHandlerRef.current();
-      // Promise resolved: User watched the ad or closed it as per SDK's "success" definition
-      console.log('Monetag ad handler promise resolved (User watched/closed ad).');
+      console.log('Monetag ad watched/closed.');
       setFeedbackMessage('Iklan Monetag selesai.'); 
-      setFeedbackType('success'); // Or 'info'
-      setIsMonetagAdShowing(false);
-      if (monetagAdTimeoutRef.current) clearTimeout(monetagAdTimeoutRef.current);
-      return true; // Ad interaction was successful
-    } catch (error) {
-      // Promise rejected: Ad failed or was skipped by user
-      console.warn('Monetag ad handler promise rejected (Ad failed or was skipped). Error:', error);
-      setFeedbackMessage('Iklan Monetag gagal dimuat atau dilewati.');
-      setFeedbackType('info'); // Or 'error' depending on how critical a skip is
-      setIsMonetagAdShowing(false);
-      if (monetagAdTimeoutRef.current) clearTimeout(monetagAdTimeoutRef.current);
-      return false; // Ad interaction failed or was skipped
+      setFeedbackType('success');
+      return true; 
+    } catch (error: any) { 
+      console.warn('Monetag ad failed or skipped. Error:', error);
+      setFeedbackMessage('Iklan Monetag gagal/dilewati.');
+      setFeedbackType('info'); 
+      return false; 
     } finally {
-        // Ensure isMonetagAdShowing is reset if not already by callbacks
-        // This might be redundant if try/catch always resets it.
-        // setIsMonetagAdShowing(false); 
+      setIsMonetagAdShowing(false);
+      setIsAdLoading(false);
     }
-  }, [isProMode, isMonetagAdShowing, feedbackMessage]); // feedbackMessage removed to avoid loops if it contains error
+  }, [isProMode, isMonetagAdShowing]); 
   
-  // --- Display TelegaIn Ad ---
-  const displayTelegaInAd = useCallback(() => {
-    if (isProMode) return false; 
-    if (!telegaAdsInstance) {
-      console.warn('TelegaIn Ads instance not available. Skipping TelegaIn ad.');
-      if (isTelegaInSdkLoaded && !feedbackMessage.includes('KRITIS:')) {
-          // Potentially set a less intrusive info message
-      }
+  const displayTelegaInAd = useCallback((): boolean => { 
+    if (isProMode) {
+        console.log("Pro mode: Skipping TelegaIn ad.");
+        return true; 
+    }
+    if (!telegaAdsInstance) { // telegaAdsInstance bertipe TelegaAdInstance | null
+      console.warn('TelegaIn Ads instance not available.');
+        if (isTelegaInSdkLoaded && !feedbackMessage.includes('KRITIS:')) {
+          setFeedbackMessage('Iklan TelegaIn belum siap.');
+          setFeedbackType('info');
+        }
       return false; 
     }
     if (isTelegaAdShowing) {
-      console.log('TelegaIn ad already requested/showing. Skipping.');
-      return true; 
+      console.log('TelegaIn ad already showing.');
+      return false; 
     }
-
-    console.log(`Attempting to show TelegaIn ad with UUID: ${TELEGAIN_AD_BLOCK_UUID}`);
+    console.log(`Attempting TelegaIn ad (UUID: ${TELEGAIN_AD_BLOCK_UUID})`);
     setFeedbackMessage('Memuat iklan TelegaIn...');
     setFeedbackType('info');
     setIsTelegaAdShowing(true);
-
+    setIsAdLoading(true);
     if (telegaAdTimeoutRef.current) clearTimeout(telegaAdTimeoutRef.current);
-
     try {
+      // telegaAdsInstance.ad_show sudah pasti ada jika telegaAdsInstance tidak null
+      // karena tipe TelegaAdInstance mengharuskannya.
       telegaAdsInstance.ad_show({ adBlockUuid: TELEGAIN_AD_BLOCK_UUID });
       console.log('TelegaIn ad_show called.');
       telegaAdTimeoutRef.current = setTimeout(() => {
         if (isTelegaAdShowing) { 
           console.log('TelegaIn ad timeout.');
           setIsTelegaAdShowing(false);
-          setFeedbackMessage(prev => prev === 'Memuat iklan TelegaIn...' ? 'Iklan TelegaIn selesai.' : prev);
+          setIsAdLoading(false);
+          setFeedbackMessage(currentMsg => {
+            if (currentMsg === 'Memuat iklan TelegaIn...') {
+              setFeedbackType('info'); 
+              return 'Iklan TelegaIn selesai/timeout.';
+            }
+            return currentMsg; 
+          });
         }
       }, 15000); 
-      return true; 
-    } catch (error) {
+      return true;
+    } catch (error: any) { 
       console.error('Failed to show TelegaIn ad:', error);
       setIsTelegaAdShowing(false);
+      setIsAdLoading(false);
       if (telegaAdTimeoutRef.current) clearTimeout(telegaAdTimeoutRef.current);
-      setFeedbackMessage(`Gagal menampilkan iklan TelegaIn: ${error instanceof Error ? error.message : String(error)}.`);
+      setFeedbackMessage(`Gagal iklan TelegaIn: ${error instanceof Error ? error.message : String(error)}.`);
       setFeedbackType('error');
       return false; 
     }
   }, [isProMode, telegaAdsInstance, isTelegaAdShowing, isTelegaInSdkLoaded, feedbackMessage]);
-
 
   const closeCamera = useCallback(() => {
     if (videoRef.current?.srcObject) {
@@ -469,23 +414,19 @@ export default function ScannerPage() {
     }
     setIsCameraOpen(false);
     setCameraError(null);
-    setIsScanning(false); 
+    setIsScanningActive(false); 
+    setIsAdLoading(false); 
   }, []);
 
   const openCamera = useCallback(async () => {
-    if (isScanning || isCameraOpen || isMonetagAdShowing || isTelegaAdShowing) return;
-    
-    setIsScanning(true); 
+    if (isScanningActive || isCameraOpen || isMonetagAdShowing || isTelegaAdShowing || isAdLoading) return;
+    setIsAdLoading(true); 
     setFeedbackMessage('Mengakses kamera...');
     setFeedbackType('info');
     setCameraError(null);
-
-    if (imagePreviewUrl?.startsWith('blob:')) {
-        URL.revokeObjectURL(imagePreviewUrl);
-    }
+    if (imagePreviewUrl?.startsWith('blob:')) URL.revokeObjectURL(imagePreviewUrl);
     setImagePreviewUrl(null); 
     setUploadedImage(null); 
-
     if (navigator.mediaDevices?.getUserMedia) {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
@@ -494,103 +435,74 @@ export default function ScannerPage() {
           videoRef.current.onloadedmetadata = () => {
             videoRef.current?.play().then(() => {
                 setIsCameraOpen(true);
-                setIsScanning(false); 
-                setFeedbackMessage('Kamera aktif. Arahkan ke chart dan ambil foto.');
-            }).catch(err => {
+                setIsAdLoading(false); 
+                setFeedbackMessage('Kamera aktif. Arahkan & ambil foto.');
+            }).catch(err => { 
                 console.error("Error playing video stream:", err);
-                setCameraError(`Gagal memulai stream video: ${err.message}`);
-                setFeedbackMessage(`Gagal memulai stream video: ${err.message}`);
+                const errorMessage = err instanceof Error ? err.message : String(err);
+                setCameraError(`Gagal stream video: ${errorMessage}`);
+                setFeedbackMessage(`Gagal stream video: ${errorMessage}`);
                 setFeedbackType('error');
                 stream.getTracks().forEach(track => track.stop()); 
-                setIsCameraOpen(false); 
-                setIsScanning(false); 
+                setIsCameraOpen(false); setIsAdLoading(false); 
             });
           };
         } else {
-            stream.getTracks().forEach(track => track.stop());
-            setIsScanning(false);
-            setFeedbackMessage('Referensi video tidak ditemukan.');
-            setFeedbackType('error');
+            stream.getTracks().forEach(track => track.stop()); setIsAdLoading(false);
+            setFeedbackMessage('Ref video tidak ada.'); setFeedbackType('error');
         }
-      } catch (err: any) {
-        let message = 'Gagal mengakses kamera.';
+      } catch (err: any) { 
+        let message = 'Gagal akses kamera.';
         if (err.name === "NotAllowedError") message = 'Akses kamera ditolak.';
-        else if (err.name === "NotFoundError") message = 'Kamera tidak ditemukan.';
+        else if (err.name === "NotFoundError") message = 'Kamera tidak ada.';
         else if (err.name === "NotReadableError") message = 'Kamera bermasalah.';
-        else message = `Gagal akses kamera: ${err.name}`;
-        setCameraError(message);
-        setFeedbackMessage(message);
-        setFeedbackType('error');
-        setIsCameraOpen(false);
-        setIsScanning(false);
+        else message = `Gagal kamera: ${err.name || String(err)}`;
+        setCameraError(message); setFeedbackMessage(message); setFeedbackType('error');
+        setIsCameraOpen(false); setIsAdLoading(false);
       }
     } else {
-      setFeedbackMessage('Fitur kamera tidak didukung.');
-      setFeedbackType('error');
-      setIsCameraOpen(false);
-      setIsScanning(false);
+      setFeedbackMessage('Fitur kamera tidak didukung.'); setFeedbackType('error');
+      setIsCameraOpen(false); setIsAdLoading(false);
     }
-  }, [isScanning, isCameraOpen, imagePreviewUrl, isMonetagAdShowing, isTelegaAdShowing, closeCamera]); 
+  }, [isScanningActive, isCameraOpen, imagePreviewUrl, isMonetagAdShowing, isTelegaAdShowing, isAdLoading, closeCamera]); 
 
   const dataURLtoFile = useCallback((dataurl: string, filename: string): File | null => {
     try {
-      const arr = dataurl.split(',');
-      if (arr.length < 2 || !arr[0] || !arr[1]) { 
-        return null;
-      }
-      const mimeMatch = arr[0].match(/:(.*?);/);
-      if (!mimeMatch || mimeMatch.length < 2 || !mimeMatch[1]) {
-        return null;
-      }
-      const mime = mimeMatch[1];
-      const bstr = atob(arr[1]); 
-      let n = bstr.length;
-      const u8arr = new Uint8Array(n);
-      while (n--) { u8arr[n] = bstr.charCodeAt(n); }
+      const arr = dataurl.split(','); if (arr.length < 2 || !arr[0] || !arr[1]) return null;
+      const mimeMatch = arr[0].match(/:(.*?);/); if (!mimeMatch || mimeMatch.length < 2 || !mimeMatch[1]) return null;
+      const mime = mimeMatch[1]; const bstr = atob(arr[1]); let n = bstr.length;
+      const u8arr = new Uint8Array(n); while (n--) { u8arr[n] = bstr.charCodeAt(n); }
       return new File([u8arr], filename, { type: mime });
-    } catch (e: unknown) { 
-      return null; 
-    }
+    } catch (e: any) { console.error("Error converting data URL to file:", e); return null; } 
   }, []);
 
   const takePhoto = useCallback(() => {
     if (!isCameraOpen || !videoRef.current || !canvasRef.current) {
-        setFeedbackMessage('Kamera tidak aktif.');
-        setFeedbackType('error');
-        return;
+        setFeedbackMessage('Kamera tidak aktif.'); setFeedbackType('error'); return;
     }
     if (videoRef.current.readyState >= videoRef.current.HAVE_METADATA && videoRef.current.videoWidth > 0) {
       setFeedbackMessage('Mengambil foto...');
-      const video = videoRef.current;
-      const canvas = canvasRef.current;
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
+      const video = videoRef.current; const canvas = canvasRef.current;
+      canvas.width = video.videoWidth; canvas.height = video.videoHeight;
       const context = canvas.getContext('2d');
       if (context) {
         context.drawImage(video, 0, 0, canvas.width, canvas.height);
         const dataUrl = canvas.toDataURL('image/jpeg', 0.9); 
-        if (imagePreviewUrl?.startsWith('blob:')) {
-            URL.revokeObjectURL(imagePreviewUrl);
-        }
+        if (imagePreviewUrl?.startsWith('blob:')) URL.revokeObjectURL(imagePreviewUrl);
         setImagePreviewUrl(dataUrl); 
         const photoFile = dataURLtoFile(dataUrl, `scan-${Date.now()}.jpg`);
         if (photoFile) {
-          setUploadedImage(photoFile); 
-          setFeedbackMessage('Foto berhasil diambil.');
-          setFeedbackType('success');
+          setUploadedImage(photoFile); setFeedbackMessage('Foto diambil.'); setFeedbackType('success');
         } else {
-          setFeedbackMessage('Gagal memproses foto.');
-          setFeedbackType('error');
+          setFeedbackMessage('Gagal proses foto.'); setFeedbackType('error');
           if (imagePreviewUrl === dataUrl) setImagePreviewUrl(null); 
         }
       } else {
-        setFeedbackMessage('Gagal mendapatkan konteks canvas.');
-        setFeedbackType('error');
+        setFeedbackMessage('Gagal konteks canvas.'); setFeedbackType('error');
       }
       closeCamera(); 
     } else {
-        setFeedbackMessage('Kamera belum siap.');
-        setFeedbackType('error');
+        setFeedbackMessage('Kamera belum siap.'); setFeedbackType('error');
     }
   }, [isCameraOpen, closeCamera, dataURLtoFile, imagePreviewUrl]); 
 
@@ -600,14 +512,18 @@ export default function ScannerPage() {
     setFeedbackType('info');
     
     if (!isProMode) {
-      console.log('Attempting to show ad after closing results popup.');
+      console.log('Attempting to show Monetag ad after closing results popup.');
       setIsMonetagAdShowing(false); 
       setIsTelegaAdShowing(false);
 
-      const monetagAdSuccessful = await displayMonetagRewardedAd(); // Wait for Monetag ad
-      if (!monetagAdSuccessful) { // If Monetag ad was not successful (failed, skipped, or handler not ready)
+      const monetagAdSuccessful = await displayMonetagRewardedAd(); 
+      
+      if (!monetagAdSuccessful) { 
         console.log('Monetag ad not shown or failed/skipped, trying TelegaIn ad after results.');
-        displayTelegaInAd();
+        const telegaAttempted = displayTelegaInAd(); 
+        if(!telegaAttempted && !isTelegaAdShowing) { 
+            setIsAdLoading(false); 
+        }
       }
     } else {
       console.log('Pro mode: Skipping ads after closing results.');
@@ -615,25 +531,20 @@ export default function ScannerPage() {
   };
 
   const handleMainScanClick = async () => {
-    if (isScanning || isCameraOpen || isMonetagAdShowing || isTelegaAdShowing) return;
+    if (isScanningActive || isCameraOpen || isMonetagAdShowing || isTelegaAdShowing || isAdLoading) return;
 
     if (uploadedImage) { 
       if (isProMode) { 
         setShowPurchasePopup(true); 
       } else { 
-        // Show Monetag ad BEFORE scanning for free users with an image
-        setIsScanning(true); // Indicate general "activity" starting (ad loading then potentially scan)
-        const adSuccessful = await displayMonetagRewardedAd();
-        setIsScanning(false); // Reset general "activity" state after ad attempt
-
-        if (adSuccessful) {
+        const telegaAdAttempted = displayTelegaInAd();
+        if (telegaAdAttempted) {
+          console.log("TelegaIn ad initiated, proceeding with scan.");
           performGeminiScanViaBackend(uploadedImage);
         } else {
-          // Feedback message for ad failure/skip is handled by displayMonetagRewardedAd
-          console.log("Monetag ad was not successful, scan will not proceed.");
-          // Optionally, set a specific feedback message here if needed, e.g.,
-          // setFeedbackMessage("Pemindaian dibatalkan karena iklan tidak selesai.");
-          // setFeedbackType('info');
+          console.log("TelegaIn ad could not be initiated, proceeding with scan directly.");
+          setFeedbackMessage("Gagal memuat iklan TelegaIn, melanjutkan pemindaian...");
+          performGeminiScanViaBackend(uploadedImage);
         }
       }
     } else { 
@@ -641,15 +552,63 @@ export default function ScannerPage() {
     }
   };
 
-  const handleConfirmPurchase = () => {
+  const handleConfirmPurchase = async () => { 
     setShowPurchasePopup(false);
-    if (uploadedImage) {
-      setFeedbackMessage('Pembelian Pro berhasil (simulasi)!');
-      setFeedbackType('success');
-      performGeminiScanViaBackend(uploadedImage); 
+    
+    // Akses window.Telegram.WebApp
+    // Tipe WebApp harusnya dikenali dari global.d.ts
+    // Define WebApp interface for Telegram Mini App
+    interface WebApp {
+        showInvoice: (params: { payload: string }, callback: (status: string) => void) => void;
+    }
+    const tgWebApp: WebApp | undefined = window.Telegram?.WebApp;
+
+    if (tgWebApp && typeof tgWebApp.showInvoice === 'function') {
+        try {
+            setFeedbackMessage("Membuat invoice pembayaran...");
+            setFeedbackType("info");
+            
+            const demoInvoicePayload = "DEMO_INVOICE_PAYLOAD_REPLACE_WITH_REAL_ONE"; 
+            if (demoInvoicePayload === "DEMO_INVOICE_PAYLOAD_REPLACE_WITH_REAL_ONE") {
+                 console.warn("Using DEMO invoice payload. Replace with real backend integration for Telegram Stars.");
+            }
+            // Tipe InvoiceStatus dari global.d.ts akan digunakan di sini
+            tgWebApp.showInvoice({ payload: demoInvoicePayload }, (status: string) => {
+                console.log('Telegram Invoice Status:', status);
+                if (status === 'paid') {
+                    setFeedbackMessage('Pembayaran berhasil! Mode Pro diaktifkan.');
+                    setFeedbackType('success');
+                    setIsProMode(true);
+                    if (uploadedImage) {
+                        performGeminiScanViaBackend(uploadedImage);
+                    }
+                } else if (status === 'failed') {
+                    setFeedbackMessage('Pembayaran gagal. Silakan coba lagi.');
+                    setFeedbackType('error');
+                } else if (status === 'pending') {
+                    setFeedbackMessage('Pembayaran tertunda. Kami akan update setelah konfirmasi.');
+                    setFeedbackType('info');
+                } else if (status === 'cancelled') {
+                    setFeedbackMessage('Pembayaran dibatalkan.');
+                    setFeedbackType('info');
+                } else {
+                     setFeedbackMessage(`Status pembayaran: ${status}.`);
+                     setFeedbackType('info');
+                }
+            });
+        } catch (error: any) { 
+            console.error("Error during purchase process (before calling showInvoice):", error);
+            setFeedbackMessage(`Gagal proses pembelian: ${error?.message || "Error tidak diketahui."}`);
+            setFeedbackType("error");
+        }
     } else {
-      setFeedbackMessage('Mode Pro: Tidak ada gambar.');
-      setFeedbackType('info');
+        console.warn("Telegram WebApp showInvoice method not available or Telegram.WebApp is undefined. Simulating purchase for non-Telegram env.");
+        setFeedbackMessage('Pembelian Pro (simulasi non-TG) berhasil! Mode Pro aktif.');
+        setFeedbackType('success');
+        setIsProMode(true); 
+        if (uploadedImage) {
+            performGeminiScanViaBackend(uploadedImage); 
+        }
     }
   };
   
@@ -665,10 +624,10 @@ export default function ScannerPage() {
       }
       setUploadedImage(file);
       if (imagePreviewUrl?.startsWith('blob:')) {
-         URL.revokeObjectURL(imagePreviewUrl);
+          URL.revokeObjectURL(imagePreviewUrl);
       }
       setImagePreviewUrl(URL.createObjectURL(file));
-      setFeedbackMessage('Gambar diunggah.');
+      setFeedbackMessage('Gambar diunggah. Klik tombol pindai.');
       setFeedbackType('info'); 
     }
   };
@@ -680,7 +639,7 @@ export default function ScannerPage() {
     }
     setUploadedImage(null);
     setImagePreviewUrl(null);
-    setFeedbackMessage('Gambar dibuang.');
+    setFeedbackMessage('Gambar dibuang. Ambil foto atau unggah baru.');
     setFeedbackType('info');
     if (fileInputRef.current) fileInputRef.current.value = ""; 
   };
@@ -695,28 +654,20 @@ export default function ScannerPage() {
   const feedbackStyles = getFeedbackStyles();
 
   const mainButtonText = () => {
-    if (isScanning && !isCameraOpen && !uploadedImage && !isMonetagAdShowing) return 'Mengakses Kamera...'; 
-    if (isScanning && uploadedImage && !isMonetagAdShowing) return 'Sedang Menganalisis...'; 
+    if (isMonetagAdShowing) return 'Memuat Iklan Monetag...';
+    if (isTelegaAdShowing) return 'Memuat Iklan TelegaIn...';
+    if (isAdLoading && !isCameraOpen && !isScanningActive) return 'Memuat Kamera/Iklan...';
+    if (isScanningActive) return 'Sedang Menganalisis...'; 
     if (isCameraOpen) return 'Kamera Aktif...'; 
-    if (isMonetagAdShowing || isTelegaAdShowing) return 'Memuat Iklan...';
-    // If isScanning is true because an ad is loading before AI scan
-    if (isScanning && (isMonetagAdShowing || isTelegaAdShowing)) return 'Memuat Iklan...';
-    if (isScanning && uploadedImage) return 'Sedang Menganalisis...'; // Catch-all for AI scan
-
-    if (uploadedImage) return isProMode ? 'Pindai Gambar (Pro)' : 'Pindai Gambar (Gratis)';
-    return isProMode ? 'Gunakan Kamera (Pro)' : 'Gunakan Kamera (Gratis)';
+    if (uploadedImage) return isProMode ? 'Pindai (Pro)' : 'Pindai (Gratis)';
+    return isProMode ? 'Buka Kamera (Pro)' : 'Buka Kamera (Gratis)';
   };
   
-  const mainButtonDisabled = 
-        (isScanning) || // General scanning/activity state (covers ad loading before scan, and AI scan)
-        isMonetagAdShowing || 
-        isTelegaAdShowing ||
-        isCameraOpen; 
+  const mainButtonDisabled = isScanningActive || isAdLoading || isCameraOpen || isMonetagAdShowing || isTelegaAdShowing;
 
 
   return (
     <>
-      {/* Monetag ExternalScriptLoader is removed, assuming monetag-tg-sdk handles its own loading */}
       <ExternalScriptLoader
         id="telega-sdk-script"
         src={TELEGAIN_SDK_URL}
@@ -729,9 +680,19 @@ export default function ScannerPage() {
             <div style={{ backgroundColor: colors.white, borderColor: colors.ashGray }} className="rounded-xl shadow-2xl p-6 w-full max-w-md text-center">
               <Star className={`w-16 h-16 text-[${colors.primaryGreen}] mx-auto mb-4`} />
               <h2 style={{ color: colors.darkGreenGray }} className="text-2xl font-bold mb-3">Aktivasi Mode Pro</h2>
-              <p style={{ color: colors.darkGreenGray }} className="text-sm mb-6">Nikmati pemindaian tanpa iklan dan fitur eksklusif.</p>
+              <p style={{ color: colors.darkGreenGray }} className="text-sm mb-6">Nikmati pemindaian tanpa iklan dan fitur eksklusif dengan Telegram Stars!</p>
               <div className="space-y-3">
-                <button onClick={handleConfirmPurchase} style={{ backgroundColor: colors.primaryGreen, color: colors.white }} className="w-full font-semibold py-3 px-6 rounded-lg text-base transition-opacity hover:opacity-90">Beli Mode Pro (Simulasi)</button>
+                <button 
+                  onClick={handleConfirmPurchase} 
+                  style={{ backgroundColor: colors.primaryGreen, color: colors.white }} 
+                  className="w-full font-semibold py-3 px-6 rounded-lg text-base transition-opacity hover:opacity-90 flex items-center justify-center"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 mr-2">
+                    <path d="M11.208 2.062a2.25 2.25 0 013.584 0l1.316 1.487 2.226-.055a2.25 2.25 0 012.253 2.253l-.055 2.225 1.488 1.316a2.25 2.25 0 010 3.584l-1.488 1.316.055 2.226a2.25 2.25 0 01-2.253 2.253l-2.226-.055-1.316 1.488a2.25 2.25 0 01-3.584 0l-1.316-1.488-2.226.055a2.25 2.25 0 01-2.253-2.253l.055-2.226-1.488-1.316a2.25 2.25 0 010-3.584l1.488-1.316-.055-2.226a2.25 2.25 0 012.253-2.253l2.226.055 1.316-1.487zM12 7.5a.75.75 0 00-.75.75v3a.75.75 0 00.75.75h3a.75.75 0 00.75-.75V9a.75.75 0 00-.75-.75h-3z" />
+                    <path fillRule="evenodd" d="M6.112 5.342c.2-.2.487-.28.773-.28s.573.08.773.28l1.316 1.316-.05.004-2.226.055-.055 2.226.004-.05 1.316 1.316a.75.75 0 001.06 0l1.316-1.316.005.05.055 2.226.055-2.226.005-.05 1.316-1.316a.75.75 0 000-1.06l-1.316-1.316-.005.05L8.97 3.75H6.744l-.05.005 1.316 1.316a.75.75 0 000 1.06L6.744 7.4V5.175l-.005.05-1.316-1.316a.75.75 0 00-1.06 0L3.05 5.175l.005-.05L3 7.4h2.226l.05-.005-1.316-1.316a.75.75 0 00-1.06-1.06l-1.316 1.316-.05-.005L3 8.97V6.744l.005.05 1.316-1.316zm10.582 6.242c.2-.2.487-.28.773-.28s.573.08.773.28l1.316 1.316-.05.004-2.226.055-.055 2.226.004-.05 1.316 1.316a.75.75 0 001.06 0l1.316-1.316.005.05.055 2.226.055-2.226.005-.05 1.316-1.316a.75.75 0 000-1.06l-1.316-1.316-.005.05L20.25 15H18.02l-.05.005 1.316 1.316a.75.75 0 000 1.06l-1.316 1.316.05.005.055-2.226.055 2.226.005.05-1.316 1.316a.75.75 0 00-1.06 0l-1.316-1.316-.005-.05-2.226-.055-2.226.055-.005.05-1.316 1.316a.75.75 0 00-1.06 0l-1.316-1.316.05-.005.055 2.226.055-2.226.005-.05 1.316-1.316a.75.75 0 000-1.06l-1.316-1.316-.005.05L8.97 15H6.744l-.05.005 1.316 1.316a.75.75 0 000 1.06L6.744 18.6V16.38l-.005.05-1.316-1.316a.75.75 0 00-1.06 0l-1.316 1.316.05-.005L3 18.6h2.226l.05-.005-1.316-1.316a.75.75 0 00-1.06-1.06l-1.316 1.316-.05-.005L3 20.25V18.02l.005.05 1.316-1.316z" clipRule="evenodd" />
+                  </svg>
+                  Beli dengan Stars
+                </button>
                 <button onClick={() => setShowPurchasePopup(false)} style={{ backgroundColor: colors.lightGray, color: colors.darkGreenGray, borderColor: colors.ashGray }} className="w-full font-semibold py-3 px-6 rounded-lg text-base border transition-colors hover:bg-opacity-70">Batal</button>
               </div>
             </div>
@@ -769,11 +730,11 @@ export default function ScannerPage() {
           <div className="p-5 sm:p-6">
             <div
               className={`relative mx-auto w-full aspect-[4/3] sm:aspect-square max-w-[320px] sm:max-w-[280px] rounded-xl overflow-hidden border-2 flex items-center justify-center transition-all duration-300 
-              ${(isScanning && !!uploadedImage) || (isMonetagAdShowing || isTelegaAdShowing) && !isCameraOpen ? `border-[${colors.primaryGreen}] shadow-xl shadow-green-500/20` : ''} 
+              ${(isScanningActive || isAdLoading || isMonetagAdShowing || isTelegaAdShowing) && !isCameraOpen ? `border-[${colors.primaryGreen}] shadow-xl shadow-green-500/20` : ''} 
               ${isCameraOpen ? `border-[${colors.primaryGreen}] border-solid` : `border-[${colors.ashGray}]`} 
-              ${isProMode && !isScanning && !imagePreviewUrl && !isCameraOpen && !isMonetagAdShowing && !isTelegaAdShowing ? `border-[${colors.primaryGreen}] border-solid shadow-lg shadow-green-500/10` : ''} 
+              ${isProMode && !isScanningActive && !isAdLoading && !imagePreviewUrl && !isCameraOpen && !isMonetagAdShowing && !isTelegaAdShowing ? `border-[${colors.primaryGreen}] border-solid shadow-lg shadow-green-500/10` : ''} 
               ${imagePreviewUrl ? 'border-solid border-dashed' : (isCameraOpen ? 'border-solid' : 'border-dashed')}`}
-              style={{ backgroundColor: colors.lightGray, borderColor: imagePreviewUrl ? colors.primaryGreen : (isCameraOpen || (isScanning && !!uploadedImage) || isMonetagAdShowing || isTelegaAdShowing ? colors.primaryGreen : (isProMode && !isScanning && !isCameraOpen ? colors.primaryGreen : colors.ashGray)) }}
+              style={{ backgroundColor: colors.lightGray, borderColor: imagePreviewUrl ? colors.primaryGreen : (isCameraOpen || isScanningActive || isAdLoading || isMonetagAdShowing || isTelegaAdShowing ? colors.primaryGreen : (isProMode && !isScanningActive && !isAdLoading && !isCameraOpen ? colors.primaryGreen : colors.ashGray)) }}
             >
               {isCameraOpen ? (
                   <>
@@ -793,11 +754,11 @@ export default function ScannerPage() {
                 <img src={imagePreviewUrl} alt="Pratinjau Unggahan" className="w-full h-full object-contain rounded-xl" />
               ) : (
                 <div className="flex flex-col items-center justify-center text-center p-4">
-                  <Camera className={`h-16 w-16 sm:h-20 sm:w-20 transition-opacity duration-300 mb-3 ${isScanning || isMonetagAdShowing || isTelegaAdShowing ? `text-[${colors.primaryGreen}] opacity-40` : `text-[${colors.ashGray}] opacity-70`}`} />
+                  <Camera className={`h-16 w-16 sm:h-20 sm:w-20 transition-opacity duration-300 mb-3 ${isScanningActive || isAdLoading || isMonetagAdShowing || isTelegaAdShowing ? `text-[${colors.primaryGreen}] opacity-40` : `text-[${colors.ashGray}] opacity-70`}`} />
                   <p style={{color: colors.darkGreenGray}} className="text-sm">Klik "{mainButtonText()}"<br/>atau unggah gambar.</p>
                 </div>
               )}
-              {!isCameraOpen && !imagePreviewUrl && !isScanning && !isMonetagAdShowing && !isTelegaAdShowing && (
+              {!isCameraOpen && !imagePreviewUrl && !isScanningActive && !isAdLoading && !isMonetagAdShowing && !isTelegaAdShowing && (
                   <>
                     <div className={`absolute top-2 left-2 w-6 h-6 sm:w-8 sm:h-8 border-t-[3px] border-l-[3px] rounded-tl-lg ${isProMode ? `border-[${colors.primaryGreen}]` : `border-[${colors.ashGray}]`}`}></div>
                     <div className={`absolute top-2 right-2 w-6 h-6 sm:w-8 sm:h-8 border-t-[3px] border-r-[3px] rounded-tr-lg ${isProMode ? `border-[${colors.primaryGreen}]` : `border-[${colors.ashGray}]`}`}></div>
@@ -805,11 +766,11 @@ export default function ScannerPage() {
                     <div className={`absolute bottom-2 right-2 w-6 h-6 sm:w-8 sm:h-8 border-b-[3px] border-r-[3px] rounded-br-lg ${isProMode ? `border-[${colors.primaryGreen}]` : `border-[${colors.ashGray}]`}`}></div>
                   </>
               )}
-              {imagePreviewUrl && !isScanning && !isCameraOpen && !isMonetagAdShowing && !isTelegaAdShowing && (
+              {imagePreviewUrl && !isScanningActive && !isAdLoading && !isCameraOpen && !isMonetagAdShowing && !isTelegaAdShowing && (
                 <button onClick={handleRemoveImage} className="absolute top-2 right-2 p-1.5 bg-black bg-opacity-50 rounded-full text-white hover:bg-opacity-70 transition-colors z-20" aria-label="Buang gambar"><XCircle className="w-5 h-5 sm:w-6 sm:h-6" /></button>
               )}
-              {((isScanning && !!uploadedImage && !isMonetagAdShowing) || (isScanning && !isCameraOpen && !uploadedImage && !isMonetagAdShowing) || isMonetagAdShowing || isTelegaAdShowing) && !isCameraOpen && (
-                <div className="absolute inset-0 w-full h-full overflow-hidden rounded-xl bg-black bg-opacity-20 flex items-center justify-center z-10 backdrop-blur-sm"><Loader2 className={`h-16 w-16 animate-spin text-[${colors.primaryGreen}]`} /></div>
+              {(isMonetagAdShowing || isTelegaAdShowing || (isScanningActive && !isCameraOpen) || (isAdLoading && !isCameraOpen) ) && (
+                  <div className="absolute inset-0 w-full h-full overflow-hidden rounded-xl bg-black bg-opacity-20 flex items-center justify-center z-10 backdrop-blur-sm"><Loader2 className={`h-16 w-16 animate-spin text-[${colors.primaryGreen}]`} /></div>
               )}
               <canvas ref={canvasRef} className="hidden"></canvas>
             </div>
@@ -821,15 +782,15 @@ export default function ScannerPage() {
                 disabled={mainButtonDisabled}
                 style={{ backgroundColor: mainButtonDisabled ? colors.ashGray : colors.primaryGreen, color: colors.white }} 
                 className={`w-full text-white font-semibold py-3 px-6 rounded-xl text-base sm:text-lg transition-all duration-300 ease-in-out transform focus:outline-none focus:ring-4 focus:ring-opacity-50 flex items-center justify-center ${mainButtonDisabled ? 'opacity-60 cursor-not-allowed' : `hover:opacity-90 hover:shadow-lg focus:ring-[${colors.primaryGreen}]`}`}>
-              { (isMonetagAdShowing || isTelegaAdShowing || (isScanning && !isCameraOpen && !uploadedImage && !mainButtonText().includes("Menganalisis")) ) && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
+              { (isAdLoading || isMonetagAdShowing || isTelegaAdShowing || (isScanningActive && !isCameraOpen && !mainButtonText().includes("Menganalisis")) ) && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
               {mainButtonText()}
             </button>
             <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" ref={fileInputRef} id="imageUploadInputScannerPage" />
             <button 
                 onClick={() => { if (isCameraOpen) closeCamera(); fileInputRef.current?.click(); }} 
-                disabled={isScanning || isMonetagAdShowing || isTelegaAdShowing || isCameraOpen}
-                style={{ backgroundColor: (isScanning || isMonetagAdShowing || isTelegaAdShowing || isCameraOpen) ? colors.ashGray : colors.darkGreenGray, color: colors.white, }} 
-                className={`w-full text-white font-semibold py-2.5 px-6 rounded-xl text-sm sm:text-base transition-all duration-300 ease-in-out transform focus:outline-none focus:ring-4 focus:ring-opacity-50 flex items-center justify-center space-x-2 ${(isScanning || isMonetagAdShowing || isTelegaAdShowing || isCameraOpen) ? 'opacity-60 cursor-not-allowed' : `hover:opacity-90 hover:shadow-md focus:ring-[${colors.darkGreenGray}]`}`}>
+                disabled={mainButtonDisabled}
+                style={{ backgroundColor: mainButtonDisabled ? colors.ashGray : colors.darkGreenGray, color: colors.white, }} 
+                className={`w-full text-white font-semibold py-2.5 px-6 rounded-xl text-sm sm:text-base transition-all duration-300 ease-in-out transform focus:outline-none focus:ring-4 focus:ring-opacity-50 flex items-center justify-center space-x-2 ${mainButtonDisabled ? 'opacity-60 cursor-not-allowed' : `hover:opacity-90 hover:shadow-md focus:ring-[${colors.darkGreenGray}]`}`}>
               <UploadCloud className="w-4 h-4 sm:w-5 sm:h-5" /><span>{imagePreviewUrl ? 'Ganti Gambar' : (isCameraOpen ? 'Tutup Kamera & Unggah' : 'Unggah Gambar Chart')}</span>
             </button>
           </div>

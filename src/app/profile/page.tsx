@@ -1,245 +1,199 @@
 'use client';
 
-import { useState, FormEvent, useRef, useEffect, SVGProps } from 'react';
+import React, { SVGProps, useState, useEffect } from 'react';
 
-// Define the color palette for easy reference
-const colors = {
-  primaryGreen: '#238B45', // Main actions, user messages
-  lightGray: '#F0F2F0',    // Page background, light text
-  ashGray: '#B7C1AC',      // Borders, secondary elements, bot messages
-  darkGreenGray: '#4E6F5C',// Header background, primary text, icons
-  white: '#FFFFFF',        // Input area background, bot message text (alternative)
+// --- Definisi Warna ---
+const newColors = {
+  primaryGreen: '#238B45',    
+  lightGray: '#F0F2F0',       
+  ashGray: '#B7C1AC',         
+  darkGreenGray: '#4E6F5C',   
+  white: '#FFFFFF',           
+  softBackground: '#E9EEEA',  
+  accentPositive: '#22C55E', 
+  accentNegative: '#EF4444', 
+  notificationBadge: '#EF4444', 
 };
 
-interface Message {
-  id: string;
-  sender: 'user' | 'bot';
-  text: string;
-  isLoading?: boolean;
-}
-
-// Send Icon Component
-const SendIcon = (props: SVGProps<SVGSVGElement>) => (
-  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" {...props}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" />
+// --- Komponen Ikon ---
+const UserCircleIcon = (props: SVGProps<SVGSVGElement>) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" {...props}>
+    <path fillRule="evenodd" d="M18.685 19.097A9.723 9.723 0 0 0 21.75 12c0-5.385-4.365-9.75-9.75-9.75S2.25 6.615 2.25 12a9.723 9.723 0 0 0 3.065 7.097A9.716 9.716 0 0 0 12 21.75a9.716 9.716 0 0 0 6.685-2.653Zm-12.54-1.285A7.486 7.486 0 0 1 12 15a7.486 7.486 0 0 1 5.855 2.812A8.224 8.224 0 0 1 12 20.25a8.224 8.224 0 0 1-5.855-2.438ZM15.75 9a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z" clipRule="evenodd" />
   </svg>
 );
 
-// Loading Spinner Icon Component
-const LoadingSpinnerIcon = (props: SVGProps<SVGSVGElement>) => (
-  <svg className="animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" {...props}>
-    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+const Cog6ToothIcon = (props: SVGProps<SVGSVGElement>) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" {...props}>
+    <path fillRule="evenodd" d="M11.078 2.25c-.917 0-1.699.663-1.905 1.525a1.586 1.586 0 0 1-.319.919c-.07.086-.16.156-.249.221a1.586 1.586 0 0 1-.445.379.603.603 0 0 1-.283.119A1.586 1.586 0 0 1 7 5.033H5.25a1.586 1.586 0 0 1-1.558-.953.604.604 0 0 1-.198-.287A1.586 1.586 0 0 1 3.002 3h-.368a.75.75 0 0 0-.722.534l-.488 1.463a.75.75 0 0 0 .293.701l.875.583a1.586 1.586 0 0 1 .38.92l-.026.283a.603.603 0 0 1-.052.282 1.586 1.586 0 0 1-.953 1.558H3a1.586 1.586 0 0 1-1.525.445.603.603 0 0 1-.283-.119 1.586 1.586 0 0 1-.919-.319c-.086-.07-.156-.16-.221-.249a1.586 1.586 0 0 1-.379-.445.603.603 0 0 1-.119-.283A1.586 1.586 0 0 1 5.033 7V5.25a1.586 1.586 0 0 1 .953-1.558.604.604 0 0 1 .287-.198A1.586 1.586 0 0 1 7 3.002h.368a.75.75 0 0 0 .722-.534l.488-1.463a.75.75 0 0 0-.293-.701l-.875-.583a1.586 1.586 0 0 1-.38-.92l.026-.283a.603.603 0 0 1 .052-.282A1.586 1.586 0 0 1 3 7.033V8.75c0 .917.663 1.699 1.525 1.905a1.586 1.586 0 0 1 .919.319c.086.07.156.16.221.249a1.586 1.586 0 0 1 .445.379.603.603 0 0 1 .119.283A1.586 1.586 0 0 1 7.033 13H8.75c.917 0 1.699-.663 1.905-1.525a1.586 1.586 0 0 1 .319-.919c.07-.086.16-.156.249-.221a1.586 1.586 0 0 1 .445-.379.603.603 0 0 1 .283-.119A1.586 1.586 0 0 1 13 11.033V9.25a1.586 1.586 0 0 1 1.558.953.604.604 0 0 1 .198.287A1.586 1.586 0 0 1 15.248 11h.368a.75.75 0 0 0 .722-.534l.488-1.463a.75.75 0 0 0-.293-.701l-.875-.583a1.586 1.586 0 0 1-.38-.92l.026-.283a.603.603 0 0 1 .052-.282A1.586 1.586 0 0 1 17 7.033V5.25c0-.917-.663-1.699-1.525-1.905a1.586 1.586 0 0 1-.919-.319c-.086-.07-.156-.16-.221-.249a1.586 1.586 0 0 1-.445-.379.603.603 0 0 1-.119-.283A1.586 1.586 0 0 1 11.033 3H9.25a1.586 1.586 0 0 1-1.558.953.604.604 0 0 1-.198.287A1.586 1.586 0 0 1 7 5.002h-.368a.75.75 0 0 0-.722.534l-.488 1.463a.75.75 0 0 0 .293.701l.875.583a1.586 1.586 0 0 1 .38.92l-.026.283a.603.603 0 0 1-.052.282A1.586 1.586 0 0 1 5.002 11V12.75a1.586 1.586 0 0 1-.953 1.558.604.604 0 0 1-.287.198A1.586 1.586 0 0 1 3.002 15h-.368a.75.75 0 0 0-.722.534l-.488 1.463a.75.75 0 0 0 .293.701l.875.583a1.586 1.586 0 0 1 .38.92l-.026.283a.603.603 0 0 1-.052.282A1.586 1.586 0 0 1 3 18.967V20.75c0 .917.663 1.699 1.525 1.905a1.586 1.586 0 0 1 .919.319c.086.07.156.16.221.249a1.586 1.586 0 0 1 .445.379.603.603 0 0 1 .119.283A1.586 1.586 0 0 1 7.033 21H8.75c.917 0 1.699-.663 1.905-1.525a1.586 1.586 0 0 1 .319-.919c.07-.086.16-.156.249-.221a1.586 1.586 0 0 1 .445-.379.603.603 0 0 1 .283-.119A1.586 1.586 0 0 1 13 18.967V17.25a1.586 1.586 0 0 1 1.558-.953.604.604 0 0 1 .198-.287A1.586 1.586 0 0 1 15.248 17H15.75a.75.75 0 0 0 .722-.534l.488-1.463a.75.75 0 0 0-.293-.701l-.875-.583a1.586 1.586 0 0 1-.38-.92l.026-.283a.603.603 0 0 1 .052-.282A1.586 1.586 0 0 1 17 11.033V9.25c0-.917.663-1.699-1.525-1.905a1.586 1.586 0 0 1-.919-.319c.086-.07.156-.16.221-.249a1.586 1.586 0 0 1 .445-.379.603.603 0 0 1 .119-.283A1.586 1.586 0 0 1 21.998 7V5.25a1.586 1.586 0 0 1-.953 1.558.604.604 0 0 1-.287.198A1.586 1.586 0 0 1 19.998 7h-.368a.75.75 0 0 0-.722.534l-.488 1.463a.75.75 0 0 0 .293.701l.875.583a1.586 1.586 0 0 1 .38.92l-.026.283a.603.603 0 0 1-.052.282A1.586 1.586 0 0 1 19 12.967V11.25a1.586 1.586 0 0 1 .953-1.558.604.604 0 0 1 .287-.198A1.586 1.586 0 0 1 21.998 11h.368a.75.75 0 0 0 .722-.534l.488-1.463a.75.75 0 0 0-.293-.701l-.875-.583a1.586 1.586 0 0 1-.38-.92l.026-.283a.603.603 0 0 1 .052-.282A1.586 1.586 0 0 1 21.998 3Z" clipRule="evenodd" />
   </svg>
 );
 
-// Settings Icon Component
-const SettingsIcon = (props: SVGProps<SVGSVGElement>) => (
+const PencilSquareIcon = (props: SVGProps<SVGSVGElement>) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" {...props}>
+    <path d="M21.731 2.269a2.625 2.625 0 0 0-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 0 0 0-3.712ZM19.513 8.199l-3.712-3.712-12.15 12.15a5.25 5.25 0 0 0-1.32 2.214l-.8 2.685a.75.75 0 0 0 .933.933l2.685-.8a5.25 5.25 0 0 0 2.214-1.32L19.513 8.2Z" />
+  </svg>
+);
+
+const ArrowTrendingUpIcon = (props: SVGProps<SVGSVGElement>) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18 9 11.25l4.306 4.306a11.95 11.95 0 0 1 5.814-5.518l2.74-1.22m0 0-5.94-2.281m5.94 2.28-2.28 5.941" />
+    </svg>
+);
+const ArrowTrendingDownIcon = (props: SVGProps<SVGSVGElement>) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6 9 12.75l4.306-4.307a11.95 11.95 0 0 1 5.814 5.518l2.74 1.22m0 0-5.94 2.28m5.94-2.28L15.75 21.75" />
+    </svg>
+);
+const MinusSmallIcon = (props: SVGProps<SVGSVGElement>) => (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" {...props}>
+        <path d="M6.75 9.25a.75.75 0 0 0 0 1.5h6.5a.75.75 0 0 0 0-1.5h-6.5Z" />
+    </svg>
+);
+
+const ScaleIcon = (props: SVGProps<SVGSVGElement>) => ( 
   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.646.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.24-.438.613-.43.992a6.759 6.759 0 0 1 0 1.257c-.008.379.137.75.43.99l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.333.184-.582.496-.646.87l-.212 1.28c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.646-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.759 6.759 0 0 1 0-1.257c.008-.379-.137-.75-.43-.99l-1.004-.828a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.49l1.217.456c.354.133.75.072 1.075-.124.072-.044.146-.087.22-.128.332-.184.582-.496.646-.87l.212-1.281Z" />
-    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+    <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v17.25m0 0c-1.472 0-2.882.265-4.185.75M12 20.25c1.472 0 2.882.265 4.185.75M18.75 4.97A48.416 48.416 0 0 0 12 4.5c-2.291 0-4.545.16-6.75.47m13.5 0c1.01.143 2.01.317 3 .52m-3-.52M6.272 5.05A48.416 48.416 0 0 1 12 4.5c2.291 0 4.545.16 6.75.47m0 0c-.98.132-1.98.296-3 .479M12 9.75V14.25m0-4.5c0-1.483.673-2.857 1.757-3.753M12 9.75c-1.084 0-1.757.87-1.757 2.25S10.916 14.25 12 14.25m-8.25 4.5a4.5 4.5 0 0 1-1.887-8.456 4.5 4.5 0 0 1 8.456-1.887m0-1.887a4.5 4.5 0 0 1 1.887 8.456 4.5 4.5 0 0 1-8.456 1.887m11.25-8.456a4.5 4.5 0 0 1-1.887 8.456 4.5 4.5 0 0 1 8.456-1.887m0-1.887a4.5 4.5 0 0 1 1.887-8.456 4.5 4.5 0 0 1-8.456 1.887" />
   </svg>
 );
 
-// Close Icon Component
-const CloseIcon = (props: SVGProps<SVGSVGElement>) => (
+const ShieldCheckIcon = (props: SVGProps<SVGSVGElement>) => ( 
   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.956 11.956 0 0 1 12 2.25c1.121 0 2.206.135 3.22.393m0 0a9 9 0 0 1 3.042 2.22 9.967 9.967 0 0 1 0 12.225 9 9 0 0 1-3.042 2.22m0 0A11.956 11.956 0 0 1 12 21.75c-1.121 0-2.206-.135-3.22-.393m0 0a9 9 0 0 1-3.042-2.22 9.967 9.967 0 0 1 0-12.225 9 9 0 0 1 3.042-2.22m0 0A11.956 11.956 0 0 1 12 2.25c1.121 0 2.206.135 3.22.393" />
   </svg>
 );
 
+// Ikon baru untuk Airdrop
+const GiftIcon = (props: SVGProps<SVGSVGElement>) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-4.773-4.227-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M21 12.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="m12.75 15 2.25-2.25" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 15V3m0 12H9" />
+    </svg>
+);
 
-export default function ChatPage() {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const messagesEndRef = useRef<null | HTMLDivElement>(null);
 
-  // State for settings popup and model selection
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [selectedModel, setSelectedModel] = useState('gemini-2.0-flash'); // Default model
-  const availableModels = ['gemini-2.0-flash', 'gemini-pro', 'gemini-ultra']; // Example models
-  
-  const recommendedPrompts = [
-    "Buatkan saya cerita pendek tentang petualangan di luar angkasa.",
-    "Jelaskan konsep relativitas umum dengan bahasa yang sederhana.",
-    "Berikan ide resep masakan untuk makan malam keluarga.",
-    "Tuliskan puisi tentang keindahan alam Indonesia.",
-    "Apa saja tips untuk belajar bahasa baru secara efektif?"
-  ];
+// Currency Formatter
+const currencyFormatter = new Intl.NumberFormat('id-ID', {
+  style: 'currency',
+  currency: 'IDR',
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 0,
+});
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }
+// --- Komponen Utama FinanceProfilePage ---
+export default function FinanceProfilePage() {
+  const [profileData, setProfileData] = useState({
+    name: "Rina Wulandari",
+    email: "rina.wulandari@example.com",
+    memberSince: "Januari 2022",
+    avatarUrl: "https://placehold.co/128x128/E9EEEA/4E6F5C?text=RW", 
+    recentActivity: [
+      { id: 'act1', type: "Deposit", description: "Gaji Bulanan", amount: 15000000, date: "25 Mei 2024", status: "Berhasil" },
+      { id: 'act2', type: "Penarikan", description: "Pembayaran Tagihan", amount: -2500000, date: "20 Mei 2024", status: "Berhasil" },
+      { id: 'act3', type: "Investasi", description: "Saham BBCA", amount: -10000000, date: "15 Mei 2024", status: "Dalam Proses" },
+      { id: 'act4', type: "Dividen", description: "Dividen TLKM", amount: 750000, date: "12 Mei 2024", status: "Berhasil" },
+    ],
+    accountLinks: [ // Diubah dari otherLinks menjadi accountLinks
+        { name: "Keamanan Akun", icon: ShieldCheckIcon, action: () => console.log("Security Clicked") },
+        { name: "Klaim Airdrop", icon: GiftIcon, action: () => console.log("Airdrop Clicked") },
+        { name: "Informasi Legal", icon: ScaleIcon, action: () => console.log("Legal Info Clicked") },
+    ]
+  });
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!input.trim()) return;
-
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      sender: 'user',
-      text: input.trim(),
-    };
-    setMessages((prev) => [...prev, userMessage]);
-    const currentInput = input.trim();
-    setInput('');
-    setIsLoading(true);
-
-    const loadingBotMessageId = (Date.now() + 1).toString();
-    const loadingBotMessage: Message = {
-      id: loadingBotMessageId,
-      sender: 'bot',
-      text: '...',
-      isLoading: true,
-    };
-    setMessages((prev) => [...prev, loadingBotMessage]);
-
-    console.log(`Sending prompt with model: ${selectedModel}`); // Log the selected model
-
-    try {
-      // NOTE: This fetch call assumes you have a backend API endpoint at /api/gemini
-      // If your backend supports model selection, you might need to pass `selectedModel` in the body.
-      const response = await fetch('/api/gemini', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        // Example: body: JSON.stringify({ prompt: currentInput, model: selectedModel }),
-        body: JSON.stringify({ prompt: currentInput }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Failed to parse error response from bot' }));
-        throw new Error(errorData.error || 'Failed to get response from bot');
-      }
-
-      const data = await response.json();
-      const botMessage: Message = {
-        id: Date.now().toString(),
-        sender: 'bot',
-        text: data.text || 'Sorry, I could not process that.',
-      };
-      setMessages((prev) => prev.map(msg => msg.id === loadingBotMessageId ? botMessage : msg));
-
-    } catch (error) {
-      console.error('Chat error:', error);
-      const errorMessageText = error instanceof Error ? error.message : 'An unknown error occurred.';
-      const errorBotMessage: Message = {
-        id: Date.now().toString(),
-        sender: 'bot',
-        text: `Error: ${errorMessageText}`,
-      };
-      setMessages((prev) => prev.map(msg => msg.id === loadingBotMessageId ? errorBotMessage : msg));
-    } finally {
-      setIsLoading(false);
-    }
+  const ActivityIcon = ({ type }: { type: string }) => {
+    if (type === "Deposit" || type === "Dividen") return <ArrowTrendingUpIcon className="w-5 h-5" style={{color: newColors.accentPositive}} />;
+    if (type === "Penarikan" || type === "Investasi") return <ArrowTrendingDownIcon className="w-5 h-5" style={{color: newColors.accentNegative}}/>;
+    return <MinusSmallIcon className="w-5 h-5" style={{color: newColors.ashGray}}/>;
   };
-
-  const toggleSettingsPopup = () => {
-    setIsSettingsOpen(!isSettingsOpen);
-  };
-
-  const handleModelChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    setSelectedModel(event.target.value);
-  };
-
-  const handleRecommendedPromptClick = (prompt: string) => {
-    setInput(prompt);
-    setIsSettingsOpen(false); // Close popup after selecting a prompt
-  };
-
 
   return (
-    <div style={{ backgroundColor: colors.lightGray }} className="flex flex-col h-screen max-w-2xl mx-auto font-sans relative">
+    <div style={{ backgroundColor: newColors.softBackground }} className="min-h-screen font-sans">
       {/* Header */}
-      <header
-        style={{ backgroundColor: colors.darkGreenGray, color: colors.lightGray }}
-        className="p-4 text-lg font-semibold text-center sticky top-0 z-20 shadow-lg flex items-center justify-between"
-      >
-        <span className="flex-grow text-center">Profile</span> {/* Centered Title */}
-        <button
-            onClick={toggleSettingsPopup}
-            style={{ color: colors.lightGray }}
-            className="p-2 rounded-full hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/50 transition-colors duration-150"
-            aria-label="Settings"
-        >
-            <SettingsIcon className="w-6 h-6" />
-        </button>
-      </header>
-
-      {/* Settings Popup */}
-      {isSettingsOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-30 p-4">
-          <div
-            style={{ backgroundColor: colors.white, color: colors.darkGreenGray }}
-            className="rounded-xl shadow-2xl p-6 w-full max-w-md transform transition-all duration-300 ease-out scale-100"
-          >
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-semibold" style={{color: colors.primaryGreen}}>Pengaturan</h2>
-              <button
-                onClick={toggleSettingsPopup}
-                className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-                aria-label="Close settings"
-              >
-                <CloseIcon className="w-6 h-6" style={{color: colors.darkGreenGray}}/>
-              </button>
-            </div>
-
-            {/* Model Selection */}
-            <div className="mb-6">
-              <label htmlFor="gemini-model" className="block text-sm font-medium mb-2" style={{color: colors.darkGreenGray}}>
-                Pilih Model Gemini:
-              </label>
-              <select
-                id="gemini-model"
-                value={selectedModel}
-                onChange={handleModelChange}
-                style={{
-                    borderColor: colors.ashGray,
-                    backgroundColor: colors.lightGray,
-                    color: colors.darkGreenGray
-                }}
-                className={`w-full p-3 border rounded-lg focus:ring-2 
-                            focus:ring-[${colors.primaryGreen}] focus:border-[${colors.primaryGreen}] 
-                            outline-none transition-all duration-200 ease-in-out`}
-              >
-                {availableModels.map(model => (
-                  <option key={model} value={model}>
-                    {model}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Recommended Prompts */}
-            <div className="mb-2">
-              <h3 className="text-lg font-medium mb-3" style={{color: colors.darkGreenGray}}>Rekomendasi Prompt:</h3>
-              <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
-                {recommendedPrompts.map((prompt, index) => (
-                  <button
-                    key={index}
-                    onClick={() => handleRecommendedPromptClick(prompt)}
-                    style={{
-                        backgroundColor: colors.lightGray,
-                        color: colors.primaryGreen,
-                        borderColor: colors.ashGray
-                    }}
-                    className="w-full text-left p-3 border rounded-lg hover:shadow-md transition-shadow duration-150 text-sm"
-                  >
-                    {prompt}
-                  </button>
-                ))}
+      <header style={{ backgroundColor: newColors.primaryGreen }} className="py-6 sm:py-8 px-4 sm:px-6 text-white shadow-md sticky top-0 z-20">
+        <div className="container mx-auto max-w-3xl"> 
+          <div className="flex flex-col items-center text-center sm:flex-row sm:justify-between sm:text-left">
+            <div className="flex flex-col items-center sm:flex-row sm:items-center mb-4 sm:mb-0">
+              <img 
+                src={profileData.avatarUrl} 
+                alt={profileData.name} 
+                className="w-16 h-16 sm:w-20 sm:h-20 rounded-full border-2 object-cover mb-3 sm:mb-0 sm:mr-4"
+                style={{borderColor: newColors.white}} 
+                onError={(e) => (e.currentTarget.src = `https://placehold.co/128x128/${newColors.softBackground.replace('#','')}/${newColors.darkGreenGray.replace('#','')}?text=${profileData.name.substring(0,2).toUpperCase()}`)}
+              />
+              <div>
+                <h1 className="text-xl md:text-2xl font-semibold">{profileData.name}</h1>
+                <p className="text-xs md:text-sm" style={{color: newColors.lightGray, opacity: 0.8}}>{profileData.email}</p>
+                <p className="text-xs mt-0.5" style={{color: newColors.ashGray, opacity:0.7}}>Anggota sejak: {profileData.memberSince}</p>
               </div>
+            </div>
+            <div className="flex space-x-2 mt-4 sm:mt-0">
+              <button className="p-2 rounded-lg hover:bg-white/15 transition-colors" title="Edit Profil">
+                <PencilSquareIcon className="w-5 h-5" style={{color: newColors.white}} />
+              </button>
+              <button className="p-2 rounded-lg hover:bg-white/15 transition-colors" title="Pengaturan">
+                <Cog6ToothIcon className="w-5 h-5" style={{color: newColors.white}} />
+              </button>
             </div>
           </div>
         </div>
-      )}
+      </header>
 
+      {/* Main Content */}
+      <main className="container mx-auto max-w-3xl p-4 sm:p-6 relative z-10"> 
+        <div className="space-y-6"> 
+        <section style={{backgroundColor: newColors.white}} className="p-5 sm:p-6 rounded-xl shadow-md">
+              <h2 style={{color: newColors.darkGreenGray}} className="text-lg sm:text-xl font-semibold mb-4 border-b pb-3">Account</h2>
+              <ul className="space-y-2">
+                {profileData.accountLinks.map(link => (
+                  <li key={link.name}>
+                    <button 
+                      onClick={link.action} 
+                      className="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-100 transition-colors text-left"
+                    >
+                      <link.icon className="w-5 h-5 flex-shrink-0" style={{color: newColors.darkGreenGray, opacity: 0.8}}/>
+                      <span style={{color: newColors.darkGreenGray}} className="text-sm font-medium">{link.name}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </section>
+
+           
+            <section style={{backgroundColor: newColors.white}} className="p-5 sm:p-6 rounded-xl shadow-md">
+              <h2 style={{color: newColors.darkGreenGray}} className="text-lg sm:text-xl font-semibold mb-4 border-b pb-3">Others</h2>
+              <ul className="space-y-2">
+                {profileData.accountLinks.map(link => (
+                  <li key={link.name}>
+                    <button 
+                      onClick={link.action} 
+                      className="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-100 transition-colors text-left"
+                    >
+                      <link.icon className="w-5 h-5 flex-shrink-0" style={{color: newColors.darkGreenGray, opacity: 0.8}}/>
+                      <span style={{color: newColors.darkGreenGray}} className="text-sm font-medium">{link.name}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </section>
+        </div>
+      </main>
+       <style jsx global>{`
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 5px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: ${newColors.lightGray};
+          border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: ${newColors.ashGray};
+          border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: ${newColors.darkGreenGray};
+        }
+      `}</style>
     </div>
   );
 }

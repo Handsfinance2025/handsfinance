@@ -21,15 +21,21 @@ export default function RootLayout({ children }: LayoutProps) {
           <main className="flex-grow pt-5 pb-20">{/* Padding untuk header (jika ada) dan bottom nav */}
             {children}
             <Script 
-          src="https://inapp.telega.io/sdk/v1/sdk.js" 
-          strategy="afterInteractive" // Muat setelah halaman interaktif
-          onError={(e) => {
-            console.error('TelegaIn SDK failed to load', e);
-          }}
-          
-        />
-        <script src='//libtl.com/sdk.js' data-zone='9375207' data-sdk='show_9375207'></script>
-            
+              src="https://inapp.telega.io/sdk/v1/sdk.js" 
+              strategy="afterInteractive" // Muat setelah halaman interaktif
+              onError={(e) => {
+                console.error('TelegaIn SDK failed to load', e);
+              }}
+            />
+            <Script 
+              src='//libtl.com/sdk.js' 
+              data-zone='9375207' 
+              data-sdk='show_9375207'
+              strategy="afterInteractive"
+              onError={(e) => {
+                console.error('libtl.com SDK failed to load', e);
+              }}
+            />
           </main>
           <BottomNav />
           
