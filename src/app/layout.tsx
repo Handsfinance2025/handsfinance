@@ -1,46 +1,37 @@
 // app/layout.tsx
 'use client'; // Sesuai permintaan pengguna
 
-import { Inter } from "next/font/google";
+
+import { Poppins } from "next/font/google"; // Import Poppins
 import "./globals.css"; // Pastikan file CSS global Anda mengimpor Tailwind
-import BottomNav from "./components/navigation"; // Path impor dari kode pengguna
+import BottomNav from "@/components/navigation"; // Assuming this path is correct
 import Script from 'next/script';
 
-const inter = Inter({ subsets: ["latin"] });
-
-import { ReactNode } from 'react';
+// Configure Poppins font
+const poppins = Poppins({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"], // Include desired weights
+  variable: "--font-poppins", // CSS variable for Tailwind
+});
 
 interface LayoutProps {
-  children: ReactNode;
+  children: React.ReactNode;
 }
+
 export default function RootLayout({ children }: LayoutProps) {
   return (
-    <html lang="id">
-      <body className={`${inter.className} bg-slate-100`}>
+    <html lang="id" className={`${poppins.variable} font-sans antialiased`}>
+      {/* Removed dark class, will be handled by globals.css or specific component styling if needed */}
+      <body className="bg-background text-foreground">
+        {/* Main container for centering content - can be adjusted */}
         <div className="container mx-auto max-w-md min-h-screen flex flex-col">
-          <main className="flex-grow pt-5 pb-20">{/* Padding untuk header (jika ada) dan bottom nav */}
+          <main className="flex-grow pt-5 pb-20"> {/* Padding for header (if any) and bottom nav */}
             {children}
-            <Script 
-              src="https://inapp.telega.io/sdk/v1/sdk.js" 
-              strategy="afterInteractive" // Muat setelah halaman interaktif
-              onError={(e) => {
-                console.error('TelegaIn SDK failed to load', e);
-              }}
-            />
-            <Script 
-              src='//libtl.com/sdk.js' 
-              data-zone='9375207' 
-              data-sdk='show_9375207'
-              strategy="afterInteractive"
-              onError={(e) => {
-                console.error('libtl.com SDK failed to load', e);
-              }}
-            />
+            {/* TelegaIn SDK script - ensure this is still needed and configured correctly */}
+        
           </main>
           <BottomNav />
-          
         </div>
-        
       </body>
     </html>
   );

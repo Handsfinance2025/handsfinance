@@ -1,13 +1,13 @@
 // global.d.ts
 
-// --- Definisi untuk TelegaIn SDK ---
-interface TelegaAdInstance {
-  ad_show: (options: { adBlockUuid: string }) => void;
-}
-
-interface TelegaInAdsController {
-  create_miniapp: (options: { token: string }) => TelegaAdInstance | null;
-}
+// --- Definisi untuk TelegaIn SDK (REMOVED) ---
+// interface TelegaAdInstance {
+//   ad_show: (options: { adBlockUuid: string }) => void;
+// }
+// 
+// interface TelegaInAdsController {
+//   create_miniapp: (options: { token: string }) => TelegaAdInstance | null;
+// }
 
 // --- Definisi untuk Telegram WebApp ---
 // Jika Anda menggunakan @twa-dev/sdk dan itu sudah menyediakan tipe global untuk window.Telegram.WebApp,
@@ -145,10 +145,10 @@ interface Telegram {
 declare global {
   interface Window {
     Telegram?: Telegram; // Telegram bisa jadi undefined
-    TelegaInController?: TelegaInAdsController; // Untuk TelegaIn SDK lama
-    TelegaIn?: { // Untuk TelegaIn SDK baru
-      AdsController?: TelegaInAdsController;
-    };
+    // TelegaInController?: TelegaInAdsController; // REMOVED
+    // TelegaIn?: { // REMOVED
+    //   AdsController?: TelegaInAdsController;
+    // };
   }
 }
 
