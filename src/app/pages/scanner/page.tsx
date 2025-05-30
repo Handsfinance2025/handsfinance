@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef, ChangeEvent } from 'react';
+import Image from 'next/image';
 import { Camera, AlertCircle, CheckCircle2, Star, ShieldOff, UploadCloud, XCircle, Loader2, Sparkles, ExternalLink, Crown } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
 import { User, Subscription } from '@supabase/supabase-js';
@@ -26,7 +27,7 @@ interface Profile {
 
 interface SnapWindow extends Window {
   snap?: {
-    pay: (token: string, options?: any) => void;
+    pay: (token: string, options?: unknown) => void;
   };
 }
 
@@ -37,7 +38,8 @@ export default function ScannerPage() {
   const [isScanningActive, setIsScanningActive] = useState(false); 
 
   const [supabaseUser, setSupabaseUser] = useState<User | null>(null);
-  const [userProfile, setUserProfile] = useState<Profile | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_userProfile, setUserProfile] = useState<Profile | null>(null);
   const [isProMode, setIsProMode] = useState(false);
   const [proExpiryDate, setProExpiryDate] = useState<string | null>(null);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
@@ -60,7 +62,93 @@ export default function ScannerPage() {
   const prevImagePreviewUrlBlobRef = useRef<string | null>(null);
   const authSubscriptionRef = useRef<Subscription | null>(null);
 
-  // Supabase Auth and Profile Fetching
+  const isValidDate = (d: unknown): d is Date => d instanceof Date && !isNaN(d.getTime());
+
+  const checkProStatus = useCallback((profile: Profile | null) => {
+    if (!profile) {
+      setIsProMode(false);
+      setProExpiryDate(null);
+      return;
+    }
+
+    const currentDate = new Date();
+    const validExpiries: Date[] = [];
+
+    if (profile.pro_expiry_midtrans) {
+      const midtransExpiry = new Date(profile.pro_expiry_midtrans);
+      if (isValidDate(midtransExpiry) && midtransExpiry > currentDate) {
+        validExpiries.push(midtransExpiry);
+      }
+    }
+
+    if (profile.pro_expiry_telegram) {
+      const telegramExpiry = new Date(profile.pro_expiry_telegram);
+      if (isValidDate(telegramExpiry) && telegramExpiry > currentDate) {
+        validExpiries.push(telegramExpiry);
+      }
+    }
+
+    if (validExpiries.length > 0) {
+      const maxTimestamp = Math.max(...validExpiries.map(date => date.getTime()));
+      const latest = new Date(maxTimestamp);
+      
+      setIsProMode(true);
+      setProExpiryDate(latest.toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' }));
+    } else {
+      setIsProMode(false);
+      setProExpiryDate(null);
+    }
+  }, []);
+
+  const fetchUserProfile = useCallback(async (userId: string) => {
+    setIsLoadingAuth(true);
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*, daily_scan_count, last_scan_date')
+        .eq('id', userId)
+        .single();
+
+      if (error && error.code !== 'PGRST116') { 
+        throw error;
+      }
+      
+      if (data) {
+        const profileData = data as Profile & { daily_scan_count?: number; last_scan_date?: string };
+        setUserProfile(profileData);
+        checkProStatus(profileData);
+
+        const today = new Date().toISOString().split('T')[0];
+        let currentScans = profileData.daily_scan_count || 0;
+
+        if (profileData.last_scan_date !== today) {
+          currentScans = 0;
+          supabase.from('profiles').update({ daily_scan_count: 0, last_scan_date: today }).eq('id', userId).then(({ error: updateError }) => {
+            if (updateError) console.error('Error resetting daily scan count:', updateError);
+          });
+        }
+        setDailyScanCount(currentScans);
+
+      } else {
+        setUserProfile(null); 
+        setIsProMode(false);
+        setProExpiryDate(null);
+        setDailyScanCount(0);
+      }
+    } catch (error: unknown) {
+      console.error('Error fetching user profile:', error);
+      const message = error instanceof Error ? error.message : String(error);
+      setFeedbackMessage(`Gagal memuat profil: ${message}`);
+      setFeedbackType('error');
+      setUserProfile(null);
+      setIsProMode(false);
+      setProExpiryDate(null);
+    } finally {
+      setIsLoadingAuth(false);
+    }
+  }, [checkProStatus]);
+
+  // Supabase Auth and Profile Fetching useEffect
   useEffect(() => {
     const getInitialSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -93,98 +181,7 @@ export default function ScannerPage() {
     return () => {
       authSubscriptionRef.current?.unsubscribe();
     };
-  }, []);
-
-  const fetchUserProfile = async (userId: string) => {
-    setIsLoadingAuth(true);
-    try {
-      const { data, error } = await supabase
-        .from('profiles') // Ensure this is your profiles table name
-        .select('*, daily_scan_count, last_scan_date') // Fetch new columns
-        .eq('id', userId)
-        .single();
-
-      if (error && error.code !== 'PGRST116') { // PGRST116: row not found, which is fine for new users
-        throw error;
-      }
-      
-      if (data) {
-        const profileData = data as Profile & { daily_scan_count?: number; last_scan_date?: string };
-        setUserProfile(profileData);
-        checkProStatus(profileData);
-
-        // Check and reset daily scan count
-        const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-        let currentScans = profileData.daily_scan_count || 0;
-
-        if (profileData.last_scan_date !== today) {
-          currentScans = 0;
-          // Update Supabase in the background (don't need to await for UI purposes here)
-          supabase.from('profiles').update({ daily_scan_count: 0, last_scan_date: today }).eq('id', userId).then(({ error: updateError }) => {
-            if (updateError) console.error('Error resetting daily scan count:', updateError);
-          });
-        }
-        setDailyScanCount(currentScans);
-
-      } else {
-        // No profile yet, user is not pro by default
-        setUserProfile(null); 
-        setIsProMode(false);
-        setProExpiryDate(null);
-        setDailyScanCount(0); // New users start with 0 scans
-      }
-    } catch (error: any) {
-      console.error('Error fetching user profile:', error);
-      setFeedbackMessage(`Gagal memuat profil: ${error.message}`);
-      setFeedbackType('error');
-      setUserProfile(null);
-      setIsProMode(false);
-      setProExpiryDate(null);
-    } finally {
-      setIsLoadingAuth(false);
-    }
-  };
-
-  const isValidDate = (d: any): d is Date => d instanceof Date && !isNaN(d.getTime());
-
-  const checkProStatus = (profile: Profile | null) => {
-    if (!profile) {
-      setIsProMode(false);
-      setProExpiryDate(null);
-      return;
-    }
-
-    const currentDate = new Date();
-    const validExpiries: Date[] = [];
-
-    // Check Midtrans expiry
-    if (profile.pro_expiry_midtrans) {
-      const midtransExpiry = new Date(profile.pro_expiry_midtrans);
-      if (isValidDate(midtransExpiry) && midtransExpiry > currentDate) {
-        validExpiries.push(midtransExpiry);
-      }
-    }
-
-    // Check Telegram expiry
-    if (profile.pro_expiry_telegram) {
-      const telegramExpiry = new Date(profile.pro_expiry_telegram);
-      if (isValidDate(telegramExpiry) && telegramExpiry > currentDate) {
-        validExpiries.push(telegramExpiry);
-      }
-    }
-
-    if (validExpiries.length > 0) {
-      // Determine the latest expiry date from all valid ones
-      const maxTimestamp = Math.max(...validExpiries.map(date => date.getTime()));
-      const latest = new Date(maxTimestamp);
-      
-      setIsProMode(true);
-      setProExpiryDate(latest.toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' }));
-    } else {
-      setIsProMode(false);
-      setProExpiryDate(null);
-    }
-  };
+  }, [fetchUserProfile]);
 
   // Load Midtrans Snap.js script
   useEffect(() => {
@@ -242,14 +239,12 @@ export default function ScannerPage() {
   }, [imagePreviewUrl]); 
 
   useEffect(() => {
+    const videoElement = videoRef.current; // Capture videoRef.current
     return () => {
-      if (videoRef.current?.srcObject) {
-        const stream = videoRef.current.srcObject as MediaStream;
+      if (videoElement?.srcObject) {
+        const stream = videoElement.srcObject as MediaStream;
         stream.getTracks().forEach(track => track.stop());
-        videoRef.current.srcObject = null;
-      }
-      if (prevImagePreviewUrlBlobRef.current?.startsWith('blob:')) {
-        URL.revokeObjectURL(prevImagePreviewUrlBlobRef.current);
+        if (videoElement) videoElement.srcObject = null; // Use captured element
       }
     };
   }, []); 
@@ -304,17 +299,17 @@ export default function ScannerPage() {
         try {
           const errorData = await response.json();
           errorResponseMessage = errorData.error || JSON.stringify(errorData) || `Error backend (${response.status}) - Respons tidak dikenal`;
-        } catch (jsonError) {
+        } catch { // Anonymous catch for jsonError
           // Jika parsing JSON gagal, coba baca sebagai teks
           try {
             const errorText = await response.text();
             errorResponseMessage = `Error backend (${response.status}): ${errorText || 'Tidak ada detail tambahan.'}`;
-          } catch (textError) {
+          } catch { // Anonymous catch for textError
             // Jika membaca sebagai teks juga gagal
             errorResponseMessage = `Error backend (${response.status}) - Gagal membaca respons error.`;
           }
         }
-        throw new Error(errorResponseMessage); // This is likely where your console error originates
+        throw new Error(errorResponseMessage);
       }
 
       const result = await response.json();
@@ -340,7 +335,7 @@ export default function ScannerPage() {
       } else {
         throw new Error('Respon backend tidak valid.');
       }
-    } catch (error: any) { 
+    } catch (error: unknown) { 
       console.error('Error during Gemini scan:', error);
       setFeedbackMessage(`Analisis AI gagal: ${error instanceof Error ? error.message : String(error)}`);
       setFeedbackType('error');
@@ -393,12 +388,15 @@ export default function ScannerPage() {
             stream.getTracks().forEach(track => track.stop()); setIsScanningActive(false);
             setFeedbackMessage('Ref video tidak ada.'); setFeedbackType('error');
         }
-      } catch (err: any) { 
+      } catch (err: unknown) { 
         let message = 'Gagal akses kamera.';
-        if (err.name === "NotAllowedError") message = 'Akses kamera ditolak.';
-        else if (err.name === "NotFoundError") message = 'Kamera tidak ada.';
-        else if (err.name === "NotReadableError") message = 'Kamera bermasalah.';
-        else message = `Gagal kamera: ${err.name || String(err)}`;
+        const errorName = err instanceof Error ? (err as any).name : undefined;
+        const errorMessageText = err instanceof Error ? err.message : String(err);
+
+        if (errorName === "NotAllowedError") message = 'Akses kamera ditolak.';
+        else if (errorName === "NotFoundError") message = 'Kamera tidak ada.';
+        else if (errorName === "NotReadableError") message = 'Kamera bermasalah.';
+        else message = `Gagal kamera: ${errorName || errorMessageText}`;
         setCameraError(message); setFeedbackMessage(message); setFeedbackType('error');
         setIsCameraOpen(false); setIsScanningActive(false);
       }
@@ -415,7 +413,11 @@ export default function ScannerPage() {
       const mime = mimeMatch[1]; const bstr = atob(arr[1]); let n = bstr.length;
       const u8arr = new Uint8Array(n); while (n--) { u8arr[n] = bstr.charCodeAt(n); }
       return new File([u8arr], filename, { type: mime });
-    } catch (e: any) { console.error("Error converting data URL to file:", e); return null; } 
+    } catch (e: unknown) { 
+      const errorMessage = e instanceof Error ? e.message : String(e);
+      console.error("Error converting data URL to file:", errorMessage);
+      return null; 
+    } 
   }, []);
 
   const takePhoto = useCallback(() => {
@@ -592,17 +594,17 @@ export default function ScannerPage() {
       }
 
       (window as SnapWindow).snap?.pay(data.token, {
-        onSuccess: function (result: any) {
+        onSuccess: function (_result: unknown) {
           setFeedbackMessage('Pembayaran berhasil! Status Pro akan segera aktif.');
           setFeedbackType('success');
           // Optionally, trigger profile refresh or optimistic update
           if (supabaseUser) fetchUserProfile(supabaseUser.id);
         },
-        onPending: function (result: any) {
+        onPending: function (_result: unknown) {
           setFeedbackMessage('Pembayaran Anda tertunda. Cek email atau akun Midtrans Anda.');
           setFeedbackType('warning');
         },
-        onError: function (result: any) {
+        onError: function (_result: unknown) {
           setFeedbackMessage('Pembayaran gagal. Silakan coba lagi.');
           setFeedbackType('error');
         },
@@ -615,9 +617,10 @@ export default function ScannerPage() {
           }
         },
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error during Midtrans purchase:', error);
-      setFeedbackMessage(`Gagal memulai pembayaran: ${error.message}`);
+      const message = error instanceof Error ? error.message : String(error);
+      setFeedbackMessage(`Gagal memulai pembayaran: ${message}`);
       setFeedbackType('error');
     } finally {
       setIsLoadingPurchase(null);

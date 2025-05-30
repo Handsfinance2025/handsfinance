@@ -1,5 +1,5 @@
 // lib/authUtils.ts
-import jwt, { SignOptions } from 'jsonwebtoken'; // Updated import to include SignOptions
+import jwt, { SignOptions, JwtPayload } from 'jsonwebtoken';
 import { createHmac } from 'crypto';
 import { supabase } from './server'; // Ensuring supabase is explicitly imported
 
@@ -22,7 +22,7 @@ export interface TelegramUserData {
   photo_url?: string;
   auth_date: number;
   hash: string;
-  [key: string]: any; // To accommodate other potential fields
+  [key: string]: unknown; // For additional, less-defined properties from Telegram
 }
 
 /**
@@ -55,18 +55,31 @@ export function verifyTelegramWebAppData(initData: string): TelegramUserData | f
     const calculatedHash = createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
 
     if (calculatedHash === hash) {
-      const user = params.get('user');
-      if (user) {
-        const userData = JSON.parse(user) as Omit<TelegramUserData, 'hash' | 'auth_date'>;
-        const authDate = params.get('auth_date');
-        if (!authDate) return false;
+      const userString = params.get('user');
+      if (userString) {
+        const parsedUser = JSON.parse(userString);
+        const authDateString = params.get('auth_date');
+        if (!authDateString) return false;
 
-        return {
-          id: userData.id, // Ensure required id field is explicitly included (as per user context)
-          ...userData,
-          auth_date: parseInt(authDate, 10),
+        // Construct the object explicitly to ensure type safety for known fields
+        const result: TelegramUserData = {
+          id: Number(parsedUser.id), // Ensure id is a number
+          first_name: parsedUser.first_name,
+          last_name: parsedUser.last_name,
+          username: parsedUser.username,
+          language_code: parsedUser.language_code,
+          photo_url: parsedUser.photo_url,
+          auth_date: parseInt(authDateString, 10),
           hash: hash,
         };
+        // If there are other fields from parsedUser that match [key: string]: unknown, they are implicitly allowed.
+        // To explicitly include them if they don't overlap with defined keys:
+        // Object.keys(parsedUser).forEach(key => {
+        //   if (!(key in result)) {
+        //     (result as any)[key] = parsedUser[key];
+        //   }
+        // });
+        return result;
       }
     }
     return false;
@@ -82,7 +95,7 @@ export function verifyTelegramWebAppData(initData: string): TelegramUserData | f
  * @param expiresInVal Token expiration time (e.g., '1h', '7d'). Renamed from expiresIn to avoid conflict.
  * @returns The generated JWT.
  */
-export function generateJWT(payload: Record<string, any>, expiresInVal: string = '1d'): string {
+export function generateJWT(payload: Record<string, unknown>, expiresInVal: string = '1d'): string {
   const options: SignOptions = {
     expiresIn: expiresInVal as jwt.SignOptions['expiresIn'], // Cast to the correct type expected by SignOptions
   };
@@ -94,9 +107,9 @@ export function generateJWT(payload: Record<string, any>, expiresInVal: string =
  * @param token The JWT to verify.
  * @returns The decoded payload if valid, otherwise null.
  */
-export function verifyJWT(token: string): Record<string, any> | null {
+export function verifyJWT(token: string): JwtPayload | string | null {
   try {
-    return jwt.verify(token, JWT_SECRET!) as Record<string, any>;
+    return jwt.verify(token, JWT_SECRET!) as JwtPayload | string;
   } catch (error) {
     console.error("JWT verification failed:", error);
     return null;
@@ -124,7 +137,7 @@ export interface UserProfile {
  */
 export async function getOrCreateUser(telegramUser: TelegramUserData): Promise<UserProfile | null> {
   // Check if user exists by telegram_id
-  let { data: existingUser, error: fetchError } = await supabase
+  const { data: existingUser, error: fetchError } = await supabase
     .from('profiles') // Assuming your table is named 'profiles'
     .select('*')
     .eq('telegram_id', telegramUser.id)

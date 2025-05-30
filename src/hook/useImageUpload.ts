@@ -2,7 +2,7 @@ import { useState } from 'react';
 // Ubah impor dari @supabase/auth-helpers-nextjs ke @supabase/ssr dan @supabase/supabase-js
 import { createBrowserClient } from "@supabase/ssr"; 
 import type { SupabaseClient } from "@supabase/supabase-js"; // Impor tipe SupabaseClient
-import { updateUser } from '../action/updateUser'; // Assuming this path and function are correct
+import { updateUser } from '../actions/updateUser'; // Changed to plural 'actions'
 
 // Define a more specific type for the Supabase client if needed,
 // otherwise SupabaseClient from @supabase/auth-helpers-nextjs is generally fine.
@@ -98,13 +98,13 @@ export const useImageUpload = () => {
       // 3. Update the user's profile or relevant data with the new image URLs
       // Ensure the structure { userPhotos: { userSelfies: uploadedUrls } }
       // matches what your `updateUser` action expects.
-      await updateUser({ userPhotos: { userSelfies: uploadedUrls } });
+      await updateUser({ userPhotos: { userSelfies: uploadedUrls } }, user.id);
 
       // Optionally, you might want to clear the error state on success
       // setError(null); 
       return true;
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error during image upload process:", err);
       // Use err.message if err is an instance of Error, otherwise convert to string
       const errorMessage = err instanceof Error ? err.message : String(err);

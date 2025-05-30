@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { verifyTelegramWebAppData, generateJWT, getOrCreateUser, TelegramUserData, UserProfile } from './authUtils'; // Pastikan path ini benar
+import { verifyTelegramWebAppData, generateJWT, getOrCreateUser } from './authUtils'; // Removed unused TelegramUserData, UserProfile
 import { serialize } from 'cookie';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {

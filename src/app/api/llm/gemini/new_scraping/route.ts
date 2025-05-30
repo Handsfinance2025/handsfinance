@@ -118,6 +118,7 @@ export async function POST(request: NextRequest) {
 
 // Menambahkan handler untuk GET hanya untuk tujuan pengujian dasar jika diperlukan
 // agar endpoint tidak langsung 404 jika diakses via browser (meskipun frontend menggunakan POST)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function GET(_request: NextRequest) {
     return NextResponse.json({ message: "API Endpoint /api/llm/gemini/news-scraping/. Gunakan metode POST dengan query." });
 }

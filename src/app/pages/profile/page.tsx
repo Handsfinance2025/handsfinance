@@ -1,17 +1,12 @@
 'use client';
 
-import React, { SVGProps, useState, useEffect } from 'react';
+import React, { SVGProps, useState } from 'react';
+import Image from 'next/image';
 
 // --- Definisi Warna (REMOVED - Using Tailwind theme) ---
 // const newColors = { ... };
 
 // --- Komponen Ikon (Will use currentColor or direct Tailwind classes) ---
-const UserCircleIcon = (props: SVGProps<SVGSVGElement>) => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" {...props}>
-    <path fillRule="evenodd" d="M18.685 19.097A9.723 9.723 0 0 0 21.75 12c0-5.385-4.365-9.75-9.75-9.75S2.25 6.615 2.25 12a9.723 9.723 0 0 0 3.065 7.097A9.716 9.716 0 0 0 12 21.75a9.716 9.716 0 0 0 6.685-2.653Zm-12.54-1.285A7.486 7.486 0 0 1 12 15a7.486 7.486 0 0 1 5.855 2.812A8.224 8.224 0 0 1 12 20.25a8.224 8.224 0 0 1-5.855-2.438ZM15.75 9a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z" clipRule="evenodd" />
-  </svg>
-);
-
 const Cog6ToothIcon = (props: SVGProps<SVGSVGElement>) => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" {...props}>
     <path fillRule="evenodd" d="M11.078 2.25c-.917 0-1.699.663-1.905 1.525a1.586 1.586 0 0 1-.319.919c-.07.086-.16.156-.249.221a1.586 1.586 0 0 1-.445.379.603.603 0 0 1-.283.119A1.586 1.586 0 0 1 7 5.033H5.25a1.586 1.586 0 0 1-1.558-.953.604.604 0 0 1-.198-.287A1.586 1.586 0 0 1 3.002 3h-.368a.75.75 0 0 0-.722.534l-.488 1.463a.75.75 0 0 0 .293.701l.875.583a1.586 1.586 0 0 1 .38.92l-.026.283a.603.603 0 0 1-.052.282 1.586 1.586 0 0 1-.953 1.558H3a1.586 1.586 0 0 1-1.525.445.603.603 0 0 1-.283-.119 1.586 1.586 0 0 1-.919-.319c-.086-.07-.156-.16-.221-.249a1.586 1.586 0 0 1-.379-.445.603.603 0 0 1-.119-.283A1.586 1.586 0 0 1 5.033 7V5.25a1.586 1.586 0 0 1 .953-1.558.604.604 0 0 1 .287-.198A1.586 1.586 0 0 1 7 3.002h.368a.75.75 0 0 0 .722-.534l.488-1.463a.75.75 0 0 0-.293-.701l-.875-.583a1.586 1.586 0 0 1-.38-.92l.026-.283a.603.603 0 0 1 .052-.282A1.586 1.586 0 0 1 3 7.033V8.75c0 .917.663 1.699 1.525 1.905a1.586 1.586 0 0 1 .919.319c.086.07.156.16.221.249a1.586 1.586 0 0 1 .445.379.603.603 0 0 1 .119.283A1.586 1.586 0 0 1 7.033 13H8.75c.917 0 1.699-.663 1.905-1.525a1.586 1.586 0 0 1 .319-.919c.07-.086.16-.156.249-.221a1.586 1.586 0 0 1 .445-.379.603.603 0 0 1 .283-.119A1.586 1.586 0 0 1 13 11.033V9.25a1.586 1.586 0 0 1 1.558.953.604.604 0 0 1 .198.287A1.586 1.586 0 0 1 15.248 11h.368a.75.75 0 0 0 .722-.534l.488-1.463a.75.75 0 0 0-.293-.701l-.875-.583a1.586 1.586 0 0 1-.38-.92l.026-.283a.603.603 0 0 1 .052-.282A1.586 1.586 0 0 1 17 7.033V5.25c0-.917-.663-1.699-1.525-1.905a1.586 1.586 0 0 1-.919-.319c-.086-.07-.156-.16-.221-.249a1.586 1.586 0 0 1-.445-.379.603.603 0 0 1-.119-.283A1.586 1.586 0 0 1 11.033 3H9.25a1.586 1.586 0 0 1-1.558.953.604.604 0 0 1-.198.287A1.586 1.586 0 0 1 7 5.002h-.368a.75.75 0 0 0-.722.534l-.488 1.463a.75.75 0 0 0 .293.701l.875.583a1.586 1.586 0 0 1 .38.92l-.026.283a.603.603 0 0 1-.052.282A1.586 1.586 0 0 1 5.002 11V12.75a1.586 1.586 0 0 1-.953 1.558.604.604 0 0 1-.287.198A1.586 1.586 0 0 1 3.002 15h-.368a.75.75 0 0 0-.722.534l-.488 1.463a.75.75 0 0 0 .293.701l.875.583a1.586 1.586 0 0 1 .38.92l-.026.283a.603.603 0 0 1-.052.282A1.586 1.586 0 0 1 3 18.967V20.75c0 .917.663 1.699 1.525 1.905a1.586 1.586 0 0 1 .919.319c.086.07.156.16.221.249a1.586 1.586 0 0 1 .445.379.603.603 0 0 1 .119.283A1.586 1.586 0 0 1 7.033 21H8.75c.917 0 1.699-.663 1.905-1.525a1.586 1.586 0 0 1 .319-.919c.07-.086.16-.156.249-.221a1.586 1.586 0 0 1 .445-.379.603.603 0 0 1 .283-.119A1.586 1.586 0 0 1 13 18.967V17.25a1.586 1.586 0 0 1 1.558-.953.604.604 0 0 1 .198-.287A1.586 1.586 0 0 1 15.248 17H15.75a.75.75 0 0 0 .722-.534l.488-1.463a.75.75 0 0 0-.293-.701l-.875-.583a1.586 1.586 0 0 1-.38-.92l.026-.283a.603.603 0 0 1 .052-.282A1.586 1.586 0 0 1 17 11.033V9.25c0-.917.663-1.699-1.525-1.905a1.586 1.586 0 0 1-.919-.319c.086-.07.156-.16.221-.249a1.586 1.586 0 0 1 .445-.379.603.603 0 0 1 .119-.283A1.586 1.586 0 0 1 21.998 7V5.25a1.586 1.586 0 0 1-.953 1.558.604.604 0 0 1-.287.198A1.586 1.586 0 0 1 19.998 7h-.368a.75.75 0 0 0-.722.534l-.488 1.463a.75.75 0 0 0 .293.701l.875.583a1.586 1.586 0 0 1 .38.92l-.026.283a.603.603 0 0 1-.052.282A1.586 1.586 0 0 1 19 12.967V11.25a1.586 1.586 0 0 1 .953-1.558.604.604 0 0 1 .287-.198A1.586 1.586 0 0 1 21.998 11h.368a.75.75 0 0 0 .722-.534l.488-1.463a.75.75 0 0 0-.293-.701l-.875-.583a1.586 1.586 0 0 1-.38-.92l.026-.283a.603.603 0 0 1 .052-.282A1.586 1.586 0 0 1 21.998 3Z" clipRule="evenodd" />
@@ -62,17 +57,9 @@ const GiftIcon = (props: SVGProps<SVGSVGElement>) => (
     </svg>
 );
 
-
-// Currency Formatter
-const currencyFormatter = new Intl.NumberFormat('id-ID', {
-  style: 'currency',
-  currency: 'IDR',
-  minimumFractionDigits: 0,
-  maximumFractionDigits: 0,
-});
-
 // --- Komponen Utama FinanceProfilePage ---
 export default function FinanceProfilePage() {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [profileData, setProfileData] = useState({
     name: "Rina Wulandari",
     email: "rina.wulandari@example.com",
@@ -91,12 +78,6 @@ export default function FinanceProfilePage() {
     ]
   });
 
-  const ActivityIcon = ({ type }: { type: string }) => {
-    if (type === "Deposit" || type === "Dividen") return <ArrowTrendingUpIcon className="w-5 h-5" />;
-    if (type === "Penarikan" || type === "Investasi") return <ArrowTrendingDownIcon className="w-5 h-5" />;
-    return <MinusSmallIcon className="w-5 h-5" />;
-  };
-
   return (
     <div className="min-h-screen font-sans bg-background text-foreground">
       {/* Header - Themed with bg-card or a dark neutral, text-primary for main elements */}
@@ -104,11 +85,17 @@ export default function FinanceProfilePage() {
         <div className="container mx-auto max-w-3xl"> 
           <div className="flex flex-col items-center text-center sm:flex-row sm:justify-between sm:text-left">
             <div className="flex flex-col items-center sm:flex-row sm:items-center mb-4 sm:mb-0">
-              <img 
+              <Image 
                 src={profileData.avatarUrl || `https://placehold.co/128x128/1E1E1E/E0E0E0?text=${profileData.name.substring(0,2).toUpperCase()}`} 
                 alt={profileData.name} 
+                width={80}
+                height={80}
                 className="w-16 h-16 sm:w-20 sm:h-20 rounded-full border-2 border-primary object-cover mb-3 sm:mb-0 sm:mr-4"
-                onError={(e) => (e.currentTarget.src = `https://placehold.co/128x128/121212/E0E0E0?text=${profileData.name.substring(0,2).toUpperCase()}`)}
+                onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+                  const target = e.target as HTMLImageElement;
+                  target.src = `https://placehold.co/128x128/121212/E0E0E0?text=${profileData.name.substring(0,2).toUpperCase()}`;
+                  target.alt = "Gagal memuat gambar";
+                }}
               />
               <div>
                 <h1 className="text-xl md:text-2xl font-semibold text-primary">{profileData.name}</h1>

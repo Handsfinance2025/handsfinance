@@ -11,13 +11,8 @@ const BellIcon = (props: SVGProps<SVGSVGElement>) => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
 );
 
-const ShoppingCartIcon = (props: SVGProps<SVGSVGElement>) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
-);
-
-const SlidersHorizontalIcon = (props: SVGProps<SVGSVGElement>) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><line x1="21" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="21" y1="18" x2="3" y2="18"/></svg>
-);
+// ShoppingCartIcon REMOVED
+// SlidersHorizontalIcon REMOVED
 
 const InfoIcon = (props: SVGProps<SVGSVGElement>) => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M12 2a10 10 0 0 0-6.32 17.9A10 10 0 0 0 12 22a10 10 0 0 0 6.32-2.1A10 10 0 0 0 12 2Z"/></svg>
@@ -48,23 +43,9 @@ const UserCircle2Icon = (props: SVGProps<SVGSVGElement>) => (
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="12" cy="10" r="3"/><path d="M12 2a10 10 0 0 0-6.32 17.9A10 10 0 0 0 12 22a10 10 0 0 0 6.32-2.1A10 10 0 0 0 12 2Z"/></svg>
 );
 
-const ChatBubbleOvalLeftEllipsisIcon = (props: SVGProps<SVGSVGElement>) => (
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12c0 4.556-3.862 8.25-8.625 8.25S3.75 16.556 3.75 12 7.612 3.75 12.375 3.75 21 7.444 21 12Z" />
-    </svg>
-);
-
-const ShareIcon = (props: SVGProps<SVGSVGElement>) => ( 
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M7.217 10.907a2.25 2.25 0 1 0 0 2.186m0-2.186c.19.303.217.636.217.962a2.25 2.25 0 0 1-4.5 0c0-.326.027-.66.217-.962m0 2.186L12 17.25m-4.783-4.157L12 8.25m0 0L16.783 13.093m-4.783-4.843L16.783 13.093" />
-    </svg>
-);
-
-const LightBulbIcon = (props: SVGProps<SVGSVGElement>) => ( 
-  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 0 0 1.5-.189m-1.5.189a6.01 6.01 0 0 1-1.5-.189m3.75 7.478a12.06 12.06 0 0 1-4.5 0m3.75 2.355a7.5 7.5 0 0 1-3 0m3-12.459A3.375 3.375 0 0 0 12 4.5c-.996 0-1.929.39-2.648 1.031A6.014 6.014 0 0 0 6.75 12.75c0 1.262.313 2.457.862 3.443M17.25 12.75c0-2.018-.996-3.873-2.648-5.031A3.375 3.375 0 0 0 12 4.5c.996 0 1.929.39 2.648 1.031A6.014 6.014 0 0 1 17.25 12.75c0 1.262-.313 2.457-.862 3.443" />
-  </svg>
-);
+// ChatBubbleOvalLeftEllipsisIcon REMOVED
+// ShareIcon REMOVED
+// LightBulbIcon REMOVED
 
 // Currency Formatter
 const currencyFormatter = new Intl.NumberFormat('id-ID', {
@@ -115,6 +96,7 @@ const SimpleBarChart = ({ data, barColor = "bg-primary", height = "h-[200px]" }:
 
 
 export default function ModernGreenApp() {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [userData, _setUserData] = useState({
     name: "Tegar",
     profileType: "Trading Pemula",
