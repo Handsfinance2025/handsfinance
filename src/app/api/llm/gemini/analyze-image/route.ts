@@ -120,7 +120,7 @@ export async function POST(req: Request) {
   } catch (error: unknown) {
     console.error('Error di /api/analyze-image:', error);
     let errorMessage = 'Gagal memproses permintaan di backend.';
-    let statusCode = 500;
+    const statusCode = 500;
 
     if (error instanceof Error) {
         errorMessage = error.message;

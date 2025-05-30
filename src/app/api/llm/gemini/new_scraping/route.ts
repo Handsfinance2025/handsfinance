@@ -86,11 +86,12 @@ export async function POST(request: NextRequest) {
         const newsData = JSON.parse(jsonText);
         console.log("API Route (/api/llm/gemini/new_scraping/): Successfully fetched and parsed news data from Gemini.");
         return NextResponse.json(newsData);
-      } catch (parseError: any) {
+      } catch (parseError: unknown) {
         console.error('API Route (/api/llm/gemini/new_scraping/): Gagal mem-parsing JSON dari Gemini:', parseError, jsonText);
+        const message = parseError instanceof Error ? parseError.message : String(parseError);
         return NextResponse.json({ 
             error: 'Gagal mem-parsing respons berita dari AI.', 
-            details: `Error parsing: ${parseError.message}. Raw text (awal): ${jsonText.substring(0,200)}...` 
+            details: `Error parsing: ${message}. Raw text (awal): ${jsonText.substring(0,200)}...` 
         }, { status: 500 });
       }
     } else {
@@ -105,17 +106,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: errorMessage, details: result }, { status: 500 });
     }
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('API Route (app/api/llm/gemini/new_scraping/): Kesalahan internal pada server API scraping:', error);
+    const message = error instanceof Error ? error.message : String(error);
     return NextResponse.json({ 
         error: 'Terjadi kesalahan internal saat memproses permintaan berita.', 
-        details: error.message 
+        details: message 
     }, { status: 500 });
   }
 }
 
 // Menambahkan handler untuk GET hanya untuk tujuan pengujian dasar jika diperlukan
 // agar endpoint tidak langsung 404 jika diakses via browser (meskipun frontend menggunakan POST)
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
     return NextResponse.json({ message: "API Endpoint /api/llm/gemini/news-scraping/. Gunakan metode POST dengan query." });
 }

@@ -1,4 +1,3 @@
-
 import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from '@google/generative-ai';
 import { NextResponse } from 'next/server';
 
@@ -79,6 +78,6 @@ export async function POST(req: Request) {
         errorMessage = error.message;
     }
     // It's often better to not expose raw error messages to the client for security.
-    return NextResponse.json({ error: 'An error occurred while processing your request.' }, { status: 500 });
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

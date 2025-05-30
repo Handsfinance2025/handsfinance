@@ -42,7 +42,14 @@ async function updateUserSubscriptionViaMidtrans(
         return { success: false, message: "Invalid plan details." };
     }
 
-    let updateData: any = {
+    type ProfileUpdateData = {
+        last_midtrans_order_id: string;
+        pro_plan_id_midtrans?: MidtransPlanKey;
+        pro_expiry_midtrans?: string;
+        // Add other fields like payment_type, transaction_time if you store them
+    };
+
+    let updateData: ProfileUpdateData = {
         last_midtrans_order_id: orderId,
         // You might want to store payment_type, transaction_time as well
     };
@@ -126,7 +133,7 @@ export async function POST(req: NextRequest) {
         // OPTION 1: From custom_field1 (Recommended)
         // You need to modify the /api/payment/midtrans/charge route to pass `userId` (Supabase auth ID)
         // as `custom_field1` in the Midtrans `parameter` object.
-        let supabaseUserId: string | null = statusResponse.custom_field1 || null;
+        const supabaseUserId: string | null = statusResponse.custom_field1 || null;
         
         // OPTION 2: Extract from order_id if you have a very specific format (less ideal)
         // Example: if orderId is `SCANNER_PRO-YEARLY-SUPABASE_USER_ID-TIMESTAMP`
