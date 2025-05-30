@@ -9,7 +9,7 @@
     "lint": "next lint"
   },
   "engines": {
-    "node": ">=22.16.0 <22"
+    "node": ">=22.16.0 <23.0.0"
   },
   "overrides": {
     "axios": "^1.7.2",
