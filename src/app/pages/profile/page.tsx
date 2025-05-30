@@ -19,22 +19,6 @@ const PencilSquareIcon = (props: SVGProps<SVGSVGElement>) => (
   </svg>
 );
 
-const ArrowTrendingUpIcon = (props: SVGProps<SVGSVGElement>) => (
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="text-green-500" {...props}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18 9 11.25l4.306 4.306a11.95 11.95 0 0 1 5.814-5.518l2.74-1.22m0 0-5.94-2.281m5.94 2.28-2.28 5.941" />
-    </svg>
-);
-const ArrowTrendingDownIcon = (props: SVGProps<SVGSVGElement>) => (
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="text-red-500" {...props}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6 9 12.75l4.306-4.307a11.95 11.95 0 0 1 5.814 5.518l2.74 1.22m0 0-5.94 2.28m5.94-2.28L15.75 21.75" />
-    </svg>
-);
-const MinusSmallIcon = (props: SVGProps<SVGSVGElement>) => (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="text-muted-foreground" {...props}>
-        <path d="M6.75 9.25a.75.75 0 0 0 0 1.5h6.5a.75.75 0 0 0 0-1.5h-6.5Z" />
-    </svg>
-);
-
 const ScaleIcon = (props: SVGProps<SVGSVGElement>) => ( 
   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v17.25m0 0c-1.472 0-2.882.265-4.185.75M12 20.25c1.472 0 2.882.265 4.185.75M18.75 4.97A48.416 48.416 0 0 0 12 4.5c-2.291 0-4.545.16-6.75.47m13.5 0c1.01.143 2.01.317 3 .52m-3-.52M6.272 5.05A48.416 48.416 0 0 1 12 4.5c2.291 0 4.545.16 6.75.47m0 0c-.98.132-1.98.296-3 .479M12 9.75V14.25m0-4.5c0-1.483.673-2.857 1.757-3.753M12 9.75c-1.084 0-1.757.87-1.757 2.25S10.916 14.25 12 14.25m-8.25 4.5a4.5 4.5 0 0 1-1.887-8.456 4.5 4.5 0 0 1 8.456-1.887m0-1.887a4.5 4.5 0 0 1 1.887 8.456 4.5 4.5 0 0 1-8.456 1.887m11.25-8.456a4.5 4.5 0 0 1-1.887 8.456 4.5 4.5 0 0 1 8.456-1.887m0-1.887a4.5 4.5 0 0 1 1.887-8.456 4.5 4.5 0 0 1-8.456 1.887" />

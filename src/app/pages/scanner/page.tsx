@@ -390,7 +390,7 @@ export default function ScannerPage() {
         }
       } catch (err: unknown) { 
         let message = 'Gagal akses kamera.';
-        const errorName = err instanceof Error ? (err as any).name : undefined;
+        const errorName = err instanceof Error ? err.name : undefined;
         const errorMessageText = err instanceof Error ? err.message : String(err);
 
         if (errorName === "NotAllowedError") message = 'Akses kamera ditolak.';
@@ -594,23 +594,20 @@ export default function ScannerPage() {
       }
 
       (window as SnapWindow).snap?.pay(data.token, {
-        onSuccess: function (_result: unknown) {
+        onSuccess: function () {
           setFeedbackMessage('Pembayaran berhasil! Status Pro akan segera aktif.');
           setFeedbackType('success');
-          // Optionally, trigger profile refresh or optimistic update
           if (supabaseUser) fetchUserProfile(supabaseUser.id);
         },
-        onPending: function (_result: unknown) {
+        onPending: function () {
           setFeedbackMessage('Pembayaran Anda tertunda. Cek email atau akun Midtrans Anda.');
           setFeedbackType('warning');
         },
-        onError: function (_result: unknown) {
+        onError: function () {
           setFeedbackMessage('Pembayaran gagal. Silakan coba lagi.');
           setFeedbackType('error');
         },
         onClose: function () {
-          // Only set feedback if it wasn't success/pending/error already
-          // This avoids overwriting a success message if user closes popup too quickly
           if (feedbackType !== 'success' && feedbackType !== 'warning' && feedbackType !== 'error'){
             setFeedbackMessage('Anda menutup popup pembayaran.');
             setFeedbackType('info');
@@ -863,11 +860,11 @@ export default function ScannerPage() {
                     </div>
                   </>
               ) : imagePreviewUrl ? (
-                <img src={imagePreviewUrl} alt="Pratinjau Unggahan" className="w-full h-full object-contain rounded-xl" />
+                <Image src={imagePreviewUrl} alt="Pratinjau Unggahan" layout="fill" objectFit="contain" className="rounded-xl" unoptimized={true} />
               ) : (
                 <div className="flex flex-col items-center justify-center text-center p-4">
                   <Camera className={`h-16 w-16 sm:h-20 sm:w-20 transition-opacity duration-300 mb-3 ${(isScanningActive) ? 'text-primary opacity-40' : 'text-muted-foreground opacity-70'}`} />
-                  <p className="text-sm text-muted-foreground">Klik "{mainButtonText()}"<br/>atau unggah gambar.</p>
+                  <p className="text-sm text-muted-foreground">Klik &quot;{mainButtonText()}&quot;<br/>atau unggah gambar.</p>
                 </div>
               )}
               {!isCameraOpen && !imagePreviewUrl && !isScanningActive && (

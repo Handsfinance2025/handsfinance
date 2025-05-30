@@ -7,13 +7,13 @@ interface UserProfileData {
   // Define the structure of data you expect to update, e.g.:
   userPhotos?: {
     userSelfies?: string[];
-    [key: string]: any; // Allow other photo types
+    [key: string]: unknown; // Changed to unknown
   };
   // Add other profile fields that can be updated
-  [key: string]: any;
+  [key: string]: unknown; // Changed to unknown
 }
 
-export async function updateUser(data: UserProfileData, userId: string): Promise<{ success: boolean; message: string; error?: any }> {
+export async function updateUser(data: UserProfileData, userId: string): Promise<{ success: boolean; message: string; error?: unknown }> {
   const supabase = createSupabaseActionClient();
   let telegramMessageSent = false;
 
@@ -54,7 +54,7 @@ export async function updateUser(data: UserProfileData, userId: string): Promise
 ${data.userPhotos?.userSelfies && data.userPhotos.userSelfies.length > 0 ? `URL Foto baru: ${data.userPhotos.userSelfies[0]}` : 'Foto profil Anda telah diubah.'}`;
           await bot.sendMessage(profileData.telegram_id, message);
           telegramMessageSent = true;
-        } catch (telegramError: any) {
+        } catch (telegramError: unknown) {
           console.error('Gagal mengirim notifikasi Telegram:', telegramError);
           // Log this error but don't fail the whole operation if Supabase update was successful
         }
@@ -70,8 +70,9 @@ ${data.userPhotos?.userSelfies && data.userPhotos.userSelfies.length > 0 ? `URL 
 
     return { success: true, message: successMessage };
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Kesalahan tak terduga dalam updateUser:', error);
-    return { success: false, message: 'Terjadi kesalahan tak terduga.', error: error.message || error };
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    return { success: false, message: 'Terjadi kesalahan tak terduga.', error: errorMessage };
   }
 }

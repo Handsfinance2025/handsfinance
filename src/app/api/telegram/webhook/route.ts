@@ -97,8 +97,6 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ message: 'OK' });
       }
       const userId = from.id;
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const _username = from.username;
 
       let planKey: TelegramPlanKey | null = null;
       if (text.startsWith('/subscribe trial') || text.startsWith('/start trial')) {
@@ -158,7 +156,6 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ message: 'OK' });
       }
       const userId = from.id;
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const _username = from.username;
 
       // Extract planId from invoice_payload (which we set as uniquePayload)
