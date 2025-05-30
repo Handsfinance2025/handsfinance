@@ -1,102 +1,56 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef, ChangeEvent } from 'react';
-import { Camera, AlertCircle, CheckCircle2, Star, ShieldOff, UploadCloud, XCircle, Loader2 } from 'lucide-react';
+import { Camera, AlertCircle, CheckCircle2, Star, ShieldOff, UploadCloud, XCircle, Loader2, Sparkles, ExternalLink, Crown } from 'lucide-react';
+import { supabase } from '@/lib/supabaseClient';
+import { User, Subscription } from '@supabase/supabase-js';
 
-import createAdHandler from 'monetag-tg-sdk'; 
+// Define plan structures (can be shared or fetched)
+const paymentPlans = {
+  trial: { id: 'trial', name: 'Scanner Pro - Trial', midtransPrice: 10000, telegramStars: 70, duration: '1 Week', features: ['Basic scanner access', 'Limited daily scans'], midtransPlanId: 'trial', telegramPlanId: 'scanner_pro_trial_tg' },
+  monthly: { id: 'monthly', name: 'Scanner Pro - Monthly', midtransPrice: 50000, telegramStars: 350, duration: 'Monthly', features: ['Full scanner access', 'Unlimited daily scans', 'Priority support'], midtransPlanId: 'monthly', telegramPlanId: 'scanner_pro_monthly_tg' },
+  yearly: { id: 'yearly', name: 'Scanner Pro - Yearly', midtransPrice: 500000, telegramStars: 3500, duration: 'Yearly', features: ['Full scanner access', 'Unlimited daily scans', 'Priority support', 'Early access to new features'], midtransPlanId: 'yearly', telegramPlanId: 'scanner_pro_yearly_tg' },
+};
+type PaymentPlanKey = keyof typeof paymentPlans;
 
-// --- KONFIGURASI WARNA (REMOVED - Styles will come from Tailwind theme) ---
-// const colors = {
-//   primaryGreen: '#238B45',
-//   lightGray: '#F0F2F0',
-//   ashGray: '#B7C1AC',
-//   darkGreenGray: '#4E6F5C',
-//   white: '#FFFFFF',
-//   softBackground: '#E9EEEA',
-//   errorRed: '#DC2626',
-//   errorBgRed: '#FEE2E2',
-// };
+interface Profile {
+  id: string; // Supabase auth.users.id
+  telegram_id?: number;
+  telegram_username?: string;
+  pro_plan_id_midtrans?: string;
+  pro_expiry_midtrans?: string; // ISO Date string
+  pro_plan_id_telegram?: string;
+  pro_expiry_telegram?: string; // ISO Date string
+  // Add other profile fields as needed
+}
 
-// --- KONFIGURASI MONETAG ---
-const MONETAG_REWARDED_INTERSTITIAL_ZONE_ID: number = 9375207; 
-
-// --- KONFIGURASI TELEGAIN (REMOVED) ---
-// const TELEGAIN_SDK_URL = "https://inapp.telega.io/sdk/v1/sdk.js";
-// const TELEGAIN_APP_TOKEN_PLACEHOLDER = "e5af34f5-3ee9-4ae1-877e-788f68a514a0"; 
-// const TELEGAIN_AD_BLOCK_UUID = "198e26ba-eeb8-4c82-ae07-c71aa2cff893";
-// 
-// const IS_TELEGAIN_TOKEN_EXPLICITLY_SET_IN_ENV =
-//   (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_TELEGAIN_APP_TOKEN !== undefined);
-// 
-// const TELEGAIN_TOKEN_FOR_SDK_INIT = IS_TELEGAIN_TOKEN_EXPLICITLY_SET_IN_ENV
-//   ? process.env.NEXT_PUBLIC_TELEGAIN_APP_TOKEN
-//   : TELEGAIN_APP_TOKEN_PLACEHOLDER;
-
-
-// --- Custom External Script Loader Component (REMOVED as it was only for TelegaIn) ---
-// interface ExternalScriptLoaderProps {
-//   id: string;
-//   src: string;
-//   onLoad?: () => void;
-//   onError?: () => void;
-// }
-// 
-// const ExternalScriptLoader: React.FC<ExternalScriptLoaderProps> = ({ id, src, onLoad, onError }) => {
-//   useEffect(() => {
-//     const existingScript = document.getElementById(id);
-//     if (existingScript) {
-//       existingScript.remove();
-//     }
-//     const script = document.createElement('script');
-//     script.id = id;
-//     script.src = src;
-//     script.async = true;
-//     const handleLoad = () => {
-//       console.log(`Script ${id} loaded successfully from ${src}`);
-//       if (onLoad) onLoad();
-//     };
-//     const handleError = (event: Event | string) => {
-//       console.error(`Error loading script ${id} from ${src}:`, event);
-//       if (onError) onError();
-//     };
-//     script.addEventListener('load', handleLoad);
-//     script.addEventListener('error', handleError);
-//     document.body.appendChild(script);
-//     return () => {
-//       script.removeEventListener('load', handleLoad);
-//       script.removeEventListener('error', handleError);
-//       const scriptToRemove = document.getElementById(id);
-//       if (scriptToRemove === script) {
-//          document.body.removeChild(scriptToRemove);
-//       }
-//     };
-//   }, [id, src, onLoad, onError]);
-//   return null;
-// };
+interface SnapWindow extends Window {
+  snap?: {
+    pay: (token: string, options?: any) => void;
+  };
+}
 
 // --- KOMPONEN UTAMA ScannerPage ---
 export default function ScannerPage() {
-  const [isMonetagAdShowing, setIsMonetagAdShowing] = useState(false);
-  const monetagAdHandlerRef = useRef<(() => Promise<void>) | null>(null);
-
-  // --- TelegaIn State (REMOVED) ---
-  // const [canLoadTelegaInSdk, setCanLoadTelegaInSdk] = useState(false); // REMOVED
-  // const [isTelegaInSdkLoaded, setIsTelegaInSdkLoaded] = useState(false); // REMOVED
-  // const [telegaAdsInstance, setTelegaAdsInstance] = useState<any | null>(null); // REMOVED
-  // const [isTelegaAdShowing, setIsTelegaAdShowing] = useState(false); // REMOVED
-  // const telegaAdTimeoutRef = useRef<NodeJS.Timeout | null>(null); // REMOVED
-
   const [feedbackMessage, setFeedbackMessage] = useState('Sedang memuat fitur, mohon tunggu...');
-  const [feedbackType, setFeedbackType] = useState<'success' | 'error' | 'info'>('info');
+  const [feedbackType, setFeedbackType] = useState<'success' | 'error' | 'info' | 'warning'>('info');
   const [isScanningActive, setIsScanningActive] = useState(false); 
-  const [isAdLoading, setIsAdLoading] = useState(false); 
 
+  const [supabaseUser, setSupabaseUser] = useState<User | null>(null);
+  const [userProfile, setUserProfile] = useState<Profile | null>(null);
   const [isProMode, setIsProMode] = useState(false);
+  const [proExpiryDate, setProExpiryDate] = useState<string | null>(null);
+  const [isLoadingAuth, setIsLoadingAuth] = useState(true);
+  const [isLoadingPurchase, setIsLoadingPurchase] = useState<PaymentPlanKey | null>(null); 
+
   const [uploadedImage, setUploadedImage] = useState<File | null>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
-  const [showPurchasePopup, setShowPurchasePopup] = useState(false);
   const [showScanResultsPopup, setShowScanResultsPopup] = useState(false);
   const [scanResults, setScanResults] = useState('');
+
+  const [dailyScanCount, setDailyScanCount] = useState(0);
+  const [showMonetagAdModal, setShowMonetagAdModal] = useState(false);
+  const FREE_SCAN_LIMIT = 10;
 
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
@@ -104,54 +58,173 @@ export default function ScannerPage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const prevImagePreviewUrlBlobRef = useRef<string | null>(null);
+  const authSubscriptionRef = useRef<Subscription | null>(null);
 
-  // Initialize Monetag Ad Handler
+  // Supabase Auth and Profile Fetching
   useEffect(() => {
-    try {
-      if (typeof createAdHandler === 'function') {
-        monetagAdHandlerRef.current = createAdHandler(MONETAG_REWARDED_INTERSTITIAL_ZONE_ID);
-        console.log('Monetag ad handler created for Zone ID:', MONETAG_REWARDED_INTERSTITIAL_ZONE_ID);
+    const getInitialSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        setSupabaseUser(session.user);
+        fetchUserProfile(session.user.id);
       } else {
-        console.error('createAdHandler is not a function. Ensure monetag-tg-sdk is correctly installed and imported.');
-        setFeedbackMessage('Gagal inisialisasi SDK Iklan Monetag (handler).');
-        setFeedbackType('error');
+        setIsLoadingAuth(false);
+        setFeedbackMessage('Silakan login untuk menggunakan fitur Scanner Pro.');
+        setFeedbackType('warning');
       }
-    } catch (error: any) { 
-        console.error('Error initializing Monetag ad handler:', error);
-        setFeedbackMessage(`Error Monetag: ${error instanceof Error ? error.message : String(error)}`);
-        setFeedbackType('error');
-    }
-  }, []); 
+    };
 
-  // --- Check TWA version and decide if TelegaIn SDK can be loaded (REMOVED) ---
+    getInitialSession();
 
-  // --- TelegaIn SDK Handlers (REMOVED) ---
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      setSupabaseUser(session?.user ?? null);
+      if (session?.user) {
+        fetchUserProfile(session.user.id);
+      } else {
+        setUserProfile(null);
+        setIsProMode(false);
+        setProExpiryDate(null);
+        setIsLoadingAuth(false);
+      }
+    });
+    
+    authSubscriptionRef.current = authListener.subscription;
 
-  // --- TelegaIn SDK Initialization (REMOVED) ---
+    return () => {
+      authSubscriptionRef.current?.unsubscribe();
+    };
+  }, []);
 
-  // --- Feedback Siap Pakai ---
-  useEffect(() => {
-    const monetagServiceReady = !!monetagAdHandlerRef.current;
+  const fetchUserProfile = async (userId: string) => {
+    setIsLoadingAuth(true);
+    try {
+      const { data, error } = await supabase
+        .from('profiles') // Ensure this is your profiles table name
+        .select('*, daily_scan_count, last_scan_date') // Fetch new columns
+        .eq('id', userId)
+        .single();
 
-    if (feedbackMessage.startsWith("GAGAL memuat skrip") || feedbackMessage.includes('KRITIS:')) {
-        return; 
-    }
-    if (monetagServiceReady) {
-        if (feedbackMessage.includes('memuat skrip') || 
-            feedbackMessage.includes('memuat fitur') || 
-            feedbackMessage.includes('Menginisialisasi') ||
-            feedbackMessage.includes('Gagal') ||
-            (feedbackMessage.includes('Controller SDK') && feedbackMessage.toLowerCase().includes('monetag')) || // Adjusted for monetag if needed
-            (feedbackMessage.includes('Token Aplikasi') && feedbackMessage.toLowerCase().includes('monetag')) // Adjusted for monetag if needed
-            ) {
-            setFeedbackMessage('Fitur siap. Mulai pindai atau unggah gambar.');
-            setFeedbackType('success');
+      if (error && error.code !== 'PGRST116') { // PGRST116: row not found, which is fine for new users
+        throw error;
+      }
+      
+      if (data) {
+        const profileData = data as Profile & { daily_scan_count?: number; last_scan_date?: string };
+        setUserProfile(profileData);
+        checkProStatus(profileData);
+
+        // Check and reset daily scan count
+        const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+        let currentScans = profileData.daily_scan_count || 0;
+
+        if (profileData.last_scan_date !== today) {
+          currentScans = 0;
+          // Update Supabase in the background (don't need to await for UI purposes here)
+          supabase.from('profiles').update({ daily_scan_count: 0, last_scan_date: today }).eq('id', userId).then(({ error: updateError }) => {
+            if (updateError) console.error('Error resetting daily scan count:', updateError);
+          });
         }
-    } else if (!monetagServiceReady && !feedbackMessage.toLowerCase().includes('monetag')) { 
-        setFeedbackMessage('Sedang memuat layanan iklan Monetag...');
-        setFeedbackType('info');
+        setDailyScanCount(currentScans);
+
+      } else {
+        // No profile yet, user is not pro by default
+        setUserProfile(null); 
+        setIsProMode(false);
+        setProExpiryDate(null);
+        setDailyScanCount(0); // New users start with 0 scans
+      }
+    } catch (error: any) {
+      console.error('Error fetching user profile:', error);
+      setFeedbackMessage(`Gagal memuat profil: ${error.message}`);
+      setFeedbackType('error');
+      setUserProfile(null);
+      setIsProMode(false);
+      setProExpiryDate(null);
+    } finally {
+      setIsLoadingAuth(false);
     }
-  }, [feedbackMessage]);
+  };
+
+  const isValidDate = (d: any): d is Date => d instanceof Date && !isNaN(d.getTime());
+
+  const checkProStatus = (profile: Profile | null) => {
+    if (!profile) {
+      setIsProMode(false);
+      setProExpiryDate(null);
+      return;
+    }
+
+    const currentDate = new Date();
+    const validExpiries: Date[] = [];
+
+    // Check Midtrans expiry
+    if (profile.pro_expiry_midtrans) {
+      const midtransExpiry = new Date(profile.pro_expiry_midtrans);
+      if (isValidDate(midtransExpiry) && midtransExpiry > currentDate) {
+        validExpiries.push(midtransExpiry);
+      }
+    }
+
+    // Check Telegram expiry
+    if (profile.pro_expiry_telegram) {
+      const telegramExpiry = new Date(profile.pro_expiry_telegram);
+      if (isValidDate(telegramExpiry) && telegramExpiry > currentDate) {
+        validExpiries.push(telegramExpiry);
+      }
+    }
+
+    if (validExpiries.length > 0) {
+      // Determine the latest expiry date from all valid ones
+      const maxTimestamp = Math.max(...validExpiries.map(date => date.getTime()));
+      const latest = new Date(maxTimestamp);
+      
+      setIsProMode(true);
+      setProExpiryDate(latest.toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' }));
+    } else {
+      setIsProMode(false);
+      setProExpiryDate(null);
+    }
+  };
+
+  // Load Midtrans Snap.js script
+  useEffect(() => {
+    const midtransClientKey = process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY;
+    if (!midtransClientKey || midtransClientKey === 'YOUR_MIDTRANS_CLIENT_KEY_PLACEHOLDER') {
+      console.warn('Midtrans client key not set. Midtrans payments will not work.');
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = process.env.NEXT_PUBLIC_MIDTRANS_SNAP_URL || "https://app.sandbox.midtrans.com/snap/snap.js";
+    script.setAttribute('data-client-key', midtransClientKey);
+    script.async = true;
+    document.head.appendChild(script);
+    return () => {
+      const existingScript = document.querySelector(`script[src="${script.src}"]`);
+      if (existingScript) {
+        document.head.removeChild(existingScript);
+      }
+    };
+  }, []);
+
+  // --- Feedback Siap Pakai (Adjusted) ---
+  useEffect(() => {
+    if (isLoadingAuth) {
+        setFeedbackMessage('Memeriksa status autentikasi dan langganan...');
+        setFeedbackType('info');
+    } else if (supabaseUser && !feedbackMessage.startsWith('Gagal')) {
+        if (isProMode) {
+            setFeedbackMessage(`Akses Pro aktif hingga ${proExpiryDate}. Fitur siap digunakan.`);
+            setFeedbackType('success');
+        } else if (feedbackMessage.includes('memuat fitur') || feedbackMessage.includes('Memeriksa status')){
+            setFeedbackMessage('Anda menggunakan mode gratis. Upgrade ke Pro untuk fitur penuh.');
+            setFeedbackType('info');
+        }
+    } else if (!supabaseUser && !isLoadingAuth && !feedbackMessage.startsWith('Gagal')){
+        setFeedbackMessage('Silakan login untuk menggunakan scanner atau upgrade ke Pro.');
+        setFeedbackType('warning');
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isProMode, proExpiryDate, supabaseUser, isLoadingAuth]); // Removed feedbackMessage from deps to avoid loops
 
   // --- Cleanup Blob URL & Timeouts ---
   useEffect(() => {
@@ -175,7 +248,6 @@ export default function ScannerPage() {
         stream.getTracks().forEach(track => track.stop());
         videoRef.current.srcObject = null;
       }
-      // if (telegaAdTimeoutRef.current) clearTimeout(telegaAdTimeoutRef.current); // REMOVED
       if (prevImagePreviewUrlBlobRef.current?.startsWith('blob:')) {
         URL.revokeObjectURL(prevImagePreviewUrlBlobRef.current);
       }
@@ -251,6 +323,20 @@ export default function ScannerPage() {
         setShowScanResultsPopup(true);
         setFeedbackMessage('Analisis AI berhasil!');
         setFeedbackType('success');
+
+        // If free user, increment scan count
+        if (!isProMode && supabaseUser) {
+          const newCount = dailyScanCount + 1;
+          setDailyScanCount(newCount);
+          const today = new Date().toISOString().split('T')[0];
+          // Update Supabase in the background
+          supabase.from('profiles')
+            .update({ daily_scan_count: newCount, last_scan_date: today })
+            .eq('id', supabaseUser.id)
+            .then(({ error: updateError }) => {
+              if (updateError) console.error('Error incrementing scan count:', updateError);
+            });
+        }
       } else {
         throw new Error('Respon backend tidak valid.');
       }
@@ -261,47 +347,7 @@ export default function ScannerPage() {
     } finally {
       setIsScanningActive(false); 
     }
-  }, [convertFileToBase64]);
-
-  const displayMonetagRewardedAd = useCallback(async (): Promise<boolean> => {
-    if (isProMode) {
-      console.log("Pro mode: Skipping Monetag ad.");
-      return true; 
-    }
-    if (!monetagAdHandlerRef.current) {
-      console.warn('Monetag ad handler not initialized.');
-      setFeedbackMessage('Iklan Monetag belum siap.');
-      setFeedbackType('error');
-      return false; 
-    }
-    if (isMonetagAdShowing) {
-      console.log('Monetag ad already showing.');
-      return false; 
-    }
-    console.log(`Attempting Monetag Rewarded ad (Zone: ${MONETAG_REWARDED_INTERSTITIAL_ZONE_ID})`);
-    setFeedbackMessage('Memuat iklan Monetag...');
-    setFeedbackType('info');
-    setIsMonetagAdShowing(true);
-    setIsAdLoading(true);
-    
-    try {
-      await monetagAdHandlerRef.current();
-      console.log('Monetag ad watched/closed.');
-      setFeedbackMessage('Iklan Monetag selesai.'); 
-      setFeedbackType('success');
-      return true; 
-    } catch (error: any) { 
-      console.warn('Monetag ad failed or skipped. Error:', error);
-      setFeedbackMessage('Iklan Monetag gagal/dilewati.');
-      setFeedbackType('info'); 
-      return false; 
-    } finally {
-      setIsMonetagAdShowing(false);
-      setIsAdLoading(false);
-    }
-  }, [isProMode, isMonetagAdShowing]); 
-  
-  // --- displayTelegaInAd REMOVED --- 
+  }, [convertFileToBase64, dailyScanCount, isProMode, supabaseUser]);
 
   const closeCamera = useCallback(() => {
     if (videoRef.current?.srcObject) {
@@ -312,12 +358,11 @@ export default function ScannerPage() {
     setIsCameraOpen(false);
     setCameraError(null);
     setIsScanningActive(false); 
-    setIsAdLoading(false); 
   }, []);
 
   const openCamera = useCallback(async () => {
-    if (isScanningActive || isCameraOpen || isMonetagAdShowing || isAdLoading) return;
-    setIsAdLoading(true); 
+    if (isScanningActive || isCameraOpen) return;
+    setIsScanningActive(true); 
     setFeedbackMessage('Mengakses kamera...');
     setFeedbackType('info');
     setCameraError(null);
@@ -332,7 +377,7 @@ export default function ScannerPage() {
           videoRef.current.onloadedmetadata = () => {
             videoRef.current?.play().then(() => {
                 setIsCameraOpen(true);
-                setIsAdLoading(false); 
+                setIsScanningActive(false); 
                 setFeedbackMessage('Kamera aktif. Arahkan & ambil foto.');
             }).catch(err => { 
                 console.error("Error playing video stream:", err);
@@ -341,11 +386,11 @@ export default function ScannerPage() {
                 setFeedbackMessage(`Gagal stream video: ${errorMessage}`);
                 setFeedbackType('error');
                 stream.getTracks().forEach(track => track.stop()); 
-                setIsCameraOpen(false); setIsAdLoading(false); 
+                setIsCameraOpen(false); setIsScanningActive(false); 
             });
           };
         } else {
-            stream.getTracks().forEach(track => track.stop()); setIsAdLoading(false);
+            stream.getTracks().forEach(track => track.stop()); setIsScanningActive(false);
             setFeedbackMessage('Ref video tidak ada.'); setFeedbackType('error');
         }
       } catch (err: any) { 
@@ -355,13 +400,13 @@ export default function ScannerPage() {
         else if (err.name === "NotReadableError") message = 'Kamera bermasalah.';
         else message = `Gagal kamera: ${err.name || String(err)}`;
         setCameraError(message); setFeedbackMessage(message); setFeedbackType('error');
-        setIsCameraOpen(false); setIsAdLoading(false);
+        setIsCameraOpen(false); setIsScanningActive(false);
       }
     } else {
       setFeedbackMessage('Fitur kamera tidak didukung.'); setFeedbackType('error');
-      setIsCameraOpen(false); setIsAdLoading(false);
+      setIsCameraOpen(false); setIsScanningActive(false);
     }
-  }, [isScanningActive, isCameraOpen, imagePreviewUrl, isMonetagAdShowing, isAdLoading, closeCamera]); 
+  }, [isScanningActive, imagePreviewUrl, isCameraOpen]); 
 
   const dataURLtoFile = useCallback((dataurl: string, filename: string): File | null => {
     try {
@@ -407,30 +452,25 @@ export default function ScannerPage() {
     setShowScanResultsPopup(false);
     setFeedbackMessage('Hasil analisis ditutup.');
     setFeedbackType('info');
-    
-    if (!isProMode) {
-      console.log('Attempting to show Monetag ad after closing results popup.');
-      setIsMonetagAdShowing(false); 
-
-      const monetagAdSuccessful = await displayMonetagRewardedAd(); 
-      
-      if (!monetagAdSuccessful) { 
-        console.log('Monetag ad not shown or failed/skipped.');
-        setIsAdLoading(false); 
-      }
-    } else {
-      console.log('Pro mode: Skipping ads after closing results.');
+    if (!isProMode && supabaseUser) {
+      setShowMonetagAdModal(true);
+      // You might want to update feedback message here too
+      // setFeedbackMessage('Terima kasih telah menggunakan versi gratis! Lihat penawaran sponsor kami.');
     }
   };
 
   const handleMainScanClick = async () => {
-    if (isScanningActive || isCameraOpen || isMonetagAdShowing || isAdLoading) return;
+    if (isScanningActive || isCameraOpen) return;
 
     if (uploadedImage) { 
       if (isProMode) { 
-        setShowPurchasePopup(true); 
+        setShowScanResultsPopup(true); 
       } else { 
-          console.log("Proceeding with scan (Monetag ad will be shown after results if applicable).");
+          if (dailyScanCount >= FREE_SCAN_LIMIT) {
+            setFeedbackMessage(`Limit scan harian (${FREE_SCAN_LIMIT}) tercapai. Upgrade ke Pro untuk scan tanpa batas atau coba lagi besok.`);
+            setFeedbackType('warning');
+            return;
+          }
           performGeminiScanViaBackend(uploadedImage);
       }
     } else { 
@@ -438,66 +478,6 @@ export default function ScannerPage() {
     }
   };
 
-  const handleConfirmPurchase = async () => { 
-    setShowPurchasePopup(false);
-    
-    // Akses window.Telegram.WebApp
-    // Tipe WebApp harusnya dikenali dari global.d.ts
-    // Define WebApp interface for Telegram Mini App
-    interface WebApp {
-        showInvoice: (params: { payload: string }, callback: (status: string) => void) => void;
-    }
-    const tgWebApp: WebApp | undefined = window.Telegram?.WebApp;
-
-    if (tgWebApp && typeof tgWebApp.showInvoice === 'function') {
-        try {
-            setFeedbackMessage("Membuat invoice pembayaran...");
-            setFeedbackType("info");
-            
-            const demoInvoicePayload = "DEMO_INVOICE_PAYLOAD_REPLACE_WITH_REAL_ONE"; 
-            if (demoInvoicePayload === "DEMO_INVOICE_PAYLOAD_REPLACE_WITH_REAL_ONE") {
-                 console.warn("Using DEMO invoice payload. Replace with real backend integration for Telegram Stars.");
-            }
-            // Tipe InvoiceStatus dari global.d.ts akan digunakan di sini
-            tgWebApp.showInvoice({ payload: demoInvoicePayload }, (status: string) => {
-                console.log('Telegram Invoice Status:', status);
-                if (status === 'paid') {
-                    setFeedbackMessage('Pembayaran berhasil! Mode Pro diaktifkan.');
-                    setFeedbackType('success');
-                    setIsProMode(true);
-                    if (uploadedImage) {
-                        performGeminiScanViaBackend(uploadedImage);
-                    }
-                } else if (status === 'failed') {
-                    setFeedbackMessage('Pembayaran gagal. Silakan coba lagi.');
-                    setFeedbackType('error');
-                } else if (status === 'pending') {
-                    setFeedbackMessage('Pembayaran tertunda. Kami akan update setelah konfirmasi.');
-                    setFeedbackType('info');
-                } else if (status === 'cancelled') {
-                    setFeedbackMessage('Pembayaran dibatalkan.');
-                    setFeedbackType('info');
-                } else {
-                     setFeedbackMessage(`Status pembayaran: ${status}.`);
-                     setFeedbackType('info');
-                }
-            });
-        } catch (error: any) { 
-            console.error("Error during purchase process (before calling showInvoice):", error);
-            setFeedbackMessage(`Gagal proses pembelian: ${error?.message || "Error tidak diketahui."}`);
-            setFeedbackType("error");
-        }
-    } else {
-        console.warn("Telegram WebApp showInvoice method not available or Telegram.WebApp is undefined. Simulating purchase for non-Telegram env.");
-        setFeedbackMessage('Pembelian Pro (simulasi non-TG) berhasil! Mode Pro aktif.');
-        setFeedbackType('success');
-        setIsProMode(true); 
-        if (uploadedImage) {
-            performGeminiScanViaBackend(uploadedImage); 
-        }
-    }
-  };
-  
   const handleImageUpload = (event: ChangeEvent<HTMLInputElement>) => {
     if (isCameraOpen) closeCamera(); 
     const file = event.target.files?.[0];
@@ -547,6 +527,13 @@ export default function ScannerPage() {
           textColorClass: 'text-red-400', // Lighter red for text
           icon: <AlertCircle className="h-5 w-5 text-red-500" /> 
         };
+      case 'warning':
+        return {
+          borderColorClass: 'border-yellow-500',
+          bgColorClass: 'bg-yellow-500/10',
+          textColorClass: 'text-yellow-400',
+          icon: <ExternalLink className="h-5 w-5 text-yellow-500" />
+        };
       default: // info
         return { 
           borderColorClass: 'border-muted-foreground', 
@@ -559,15 +546,83 @@ export default function ScannerPage() {
   const feedbackStyles = getFeedbackStyles();
 
   const mainButtonText = () => {
-    if (isMonetagAdShowing) return 'Memuat Iklan Monetag...';
-    if (isAdLoading && !isCameraOpen && !isScanningActive) return isMonetagAdShowing ? 'Memuat Iklan Monetag...' : 'Memuat Kamera/Iklan...';
-    if (isScanningActive) return 'Sedang Menganalisis...'; 
     if (isCameraOpen) return 'Kamera Aktif...'; 
     if (uploadedImage) return isProMode ? 'Pindai (Pro)' : 'Pindai (Gratis)';
     return isProMode ? 'Buka Kamera (Pro)' : 'Buka Kamera (Gratis)';
   };
   
-  const mainButtonDisabled = isScanningActive || isAdLoading || isCameraOpen || isMonetagAdShowing;
+  const mainButtonDisabled = isScanningActive || isCameraOpen;
+
+  const handlePurchase = async (plan: PaymentPlanKey) => {
+    if (!supabaseUser) {
+      setFeedbackMessage('Silakan login untuk melakukan pembelian.');
+      setFeedbackType('warning');
+      return;
+    }
+    if (!(window as SnapWindow).snap) {
+      setFeedbackMessage('Layanan pembayaran belum siap. Coba lagi nanti.');
+      setFeedbackType('error');
+      return;
+    }
+
+    setIsLoadingPurchase(plan);
+    setFeedbackMessage(`Memproses langganan ${paymentPlans[plan].name}...`);
+    setFeedbackType('info');
+
+    try {
+      const response = await fetch('/api/payment/midtrans/charge', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          planId: paymentPlans[plan].midtransPlanId,
+          userId: supabaseUser.id,
+          userEmail: supabaseUser.email,
+          userName: supabaseUser.user_metadata?.full_name || supabaseUser.email, // Or any other name field
+          amount: paymentPlans[plan].midtransPrice,
+          planName: paymentPlans[plan].name,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Gagal membuat transaksi Midtrans.');
+      }
+
+      (window as SnapWindow).snap?.pay(data.token, {
+        onSuccess: function (result: any) {
+          setFeedbackMessage('Pembayaran berhasil! Status Pro akan segera aktif.');
+          setFeedbackType('success');
+          // Optionally, trigger profile refresh or optimistic update
+          if (supabaseUser) fetchUserProfile(supabaseUser.id);
+        },
+        onPending: function (result: any) {
+          setFeedbackMessage('Pembayaran Anda tertunda. Cek email atau akun Midtrans Anda.');
+          setFeedbackType('warning');
+        },
+        onError: function (result: any) {
+          setFeedbackMessage('Pembayaran gagal. Silakan coba lagi.');
+          setFeedbackType('error');
+        },
+        onClose: function () {
+          // Only set feedback if it wasn't success/pending/error already
+          // This avoids overwriting a success message if user closes popup too quickly
+          if (feedbackType !== 'success' && feedbackType !== 'warning' && feedbackType !== 'error'){
+            setFeedbackMessage('Anda menutup popup pembayaran.');
+            setFeedbackType('info');
+          }
+        },
+      });
+    } catch (error: any) {
+      console.error('Error during Midtrans purchase:', error);
+      setFeedbackMessage(`Gagal memulai pembayaran: ${error.message}`);
+      setFeedbackType('error');
+    } finally {
+      setIsLoadingPurchase(null);
+    }
+  };
 
   // --- Helper function to parse scan results ---
   const parseScanResults = (results: string): Array<{ title: string; content: string; isSubItem?: boolean }> => {
@@ -657,31 +712,7 @@ export default function ScannerPage() {
 
   return (
     <>
-      {/* TelegaIn ExternalScriptLoader REMOVED */}
       <main className="flex min-h-screen flex-col items-center justify-center p-4 font-sans relative">
-        {showPurchasePopup && (
-          <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-            <div className="bg-card border border-border rounded-xl shadow-2xl p-6 w-full max-w-md text-center">
-              <Star className="w-16 h-16 text-primary mx-auto mb-4" />
-              <h2 className="text-2xl font-bold mb-3 text-foreground">Aktivasi Mode Pro</h2>
-              <p className="text-sm mb-6 text-muted-foreground">Nikmati pemindaian tanpa iklan dan fitur eksklusif dengan Telegram Stars!</p>
-              <div className="space-y-3">
-                <button 
-                  onClick={handleConfirmPurchase} 
-                  className="w-full font-semibold py-3 px-6 rounded-lg text-base transition-opacity hover:opacity-90 flex items-center justify-center bg-primary text-primary-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-2 focus:ring-offset-card"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 mr-2">
-                    <path d="M11.208 2.062a2.25 2.25 0 013.584 0l1.316 1.487 2.226-.055a2.25 2.25 0 012.253 2.253l-.055 2.225 1.488 1.316a2.25 2.25 0 010 3.584l-1.488 1.316.055 2.226a2.25 2.25 0 01-2.253 2.253l-2.226-.055-1.316 1.488a2.25 2.25 0 01-3.584 0l-1.316-1.488-2.226.055a2.25 2.25 0 01-2.253-2.253l.055-2.226-1.488-1.316a2.25 2.25 0 010-3.584l1.488-1.316-.055-2.226a2.25 2.25 0 012.253-2.253l2.226.055 1.316-1.487zM12 7.5a.75.75 0 00-.75.75v3a.75.75 0 00.75.75h3a.75.75 0 00.75-.75V9a.75.75 0 00-.75-.75h-3z" />
-                    <path fillRule="evenodd" d="M6.112 5.342c.2-.2.487-.28.773-.28s.573.08.773.28l1.316 1.316-.05.004-2.226.055-.055 2.226.004-.05 1.316 1.316a.75.75 0 001.06 0l1.316-1.316.005.05.055 2.226.055-2.226.005-.05 1.316-1.316a.75.75 0 000-1.06l-1.316-1.316-.005.05L8.97 3.75H6.744l-.05.005 1.316 1.316a.75.75 0 000 1.06L6.744 7.4V5.175l-.005.05-1.316-1.316a.75.75 0 00-1.06 0L3.05 5.175l.005-.05L3 7.4h2.226l.05-.005-1.316-1.316a.75.75 0 00-1.06-1.06l-1.316 1.316-.05-.005L3 8.97V6.744l.005.05 1.316-1.316zm10.582 6.242c.2-.2.487-.28.773-.28s.573.08.773.28l1.316 1.316-.05.004-2.226.055-.055 2.226.004-.05 1.316 1.316a.75.75 0 001.06 0l1.316-1.316.005.05.055 2.226.055-2.226.005-.05 1.316-1.316a.75.75 0 000-1.06l-1.316-1.316-.005.05L20.25 15H18.02l-.05.005 1.316 1.316a.75.75 0 000 1.06l-1.316 1.316.05.005.055-2.226.055 2.226.005.05-1.316 1.316a.75.75 0 00-1.06 0l-1.316-1.316-.005-.05-2.226-.055-2.226.055-.005.05-1.316 1.316a.75.75 0 00-1.06 0l-1.316-1.316.05-.005.055 2.226.055-2.226.005-.05 1.316-1.316a.75.75 0 000-1.06l-1.316-1.316-.005.05L8.97 15H6.744l-.05.005 1.316 1.316a.75.75 0 000 1.06L6.744 18.6V16.38l-.005.05-1.316-1.316a.75.75 0 00-1.06 0l-1.316 1.316.05-.005L3 18.6h2.226l.05-.005-1.316-1.316a.75.75 0 00-1.06-1.06l-1.316 1.316-.05-.005L3 20.25V18.02l.005.05 1.316-1.316z" clipRule="evenodd" />
-                  </svg>
-                  Beli dengan Stars
-                </button>
-                <button onClick={() => setShowPurchasePopup(false)} className="w-full font-semibold py-3 px-6 rounded-lg text-base border border-border text-muted-foreground transition-colors hover:bg-neutral-700/60 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-2 focus:ring-offset-card">Batal</button>
-              </div>
-            </div>
-          </div>
-        )}
-
         {showScanResultsPopup && (
           <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4 backdrop-blur-md transition-opacity duration-300 ease-in-out">
             <div className="bg-card border border-border rounded-xl shadow-2xl w-full max-w-lg transform transition-all duration-300 ease-in-out scale-100 opacity-100">
@@ -739,6 +770,45 @@ export default function ScannerPage() {
           </div>
         )}
 
+        {/* Monetag Ad Modal */}
+        {showMonetagAdModal && (
+          <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[101] p-4 backdrop-blur-md">
+            <div className="bg-card border border-border rounded-xl shadow-2xl w-full max-w-md transform transition-all duration-300 ease-in-out scale-100 opacity-100">
+              <div className="p-6 text-center border-b border-border">
+                <h2 className="text-xl font-semibold text-foreground">Penawaran Sponsor</h2>
+                 <button 
+                    onClick={() => setShowMonetagAdModal(false)} 
+                    className="absolute top-3 right-3 p-1.5 bg-transparent rounded-full text-muted-foreground hover:bg-neutral-700/50 transition-colors z-30" 
+                    aria-label="Tutup iklan">
+                    <XCircle className="w-6 h-6" />
+                </button>
+              </div>
+              <div className="p-6 min-h-[250px] flex items-center justify-center">
+                {/* 
+                  !!!! PASTE YOUR MONETAG AD SCRIPT/CODE HERE !!!!
+                  For example, if it's a script tag:
+                  <div dangerouslySetInnerHTML={{ __html: \`
+                    <script type="text/javascript">
+                      // Your Monetag ad zone script
+                    </script>
+                  \`}} />
+                  Or if it's an iframe or other embed code.
+                  Make sure it's responsive or fits within this modal.
+                */}
+                <p className="text-muted-foreground">Monetag Ad Placeholder - Anda perlu mengganti ini dengan kode iklan Monetag Anda.</p>
+              </div>
+              <div className="p-4 border-t border-border text-center">
+                <button 
+                  onClick={() => setShowMonetagAdModal(false)} 
+                  className="font-semibold py-2 px-5 rounded-lg text-sm transition-opacity hover:opacity-90 bg-primary text-primary-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-2 focus:ring-offset-card"
+                >
+                  Tutup Iklan
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="bg-card border border-border w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden transform transition-all duration-500 hover:shadow-neutral-800/70">
           <div className="bg-neutral-800/50 p-5 sm:p-6 text-center border-b border-border">
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">Pemindai Analisis Trading</h1>
@@ -767,9 +837,9 @@ export default function ScannerPage() {
           <div className="p-5 sm:p-6 bg-card">
             <div
               className={`relative mx-auto w-full aspect-[4/3] sm:aspect-square max-w-[320px] sm:max-w-[280px] rounded-xl overflow-hidden border-2 flex items-center justify-center transition-all duration-300 bg-background 
-              ${(isScanningActive || isAdLoading || isMonetagAdShowing) && !isCameraOpen ? 'border-primary shadow-xl shadow-primary/20' : 'border-border'} 
+              ${(isScanningActive) && !isCameraOpen ? 'border-primary shadow-xl shadow-primary/20' : 'border-border'} 
               ${isCameraOpen ? 'border-primary border-solid' : 'border-dashed'} 
-              ${isProMode && !isScanningActive && !isAdLoading && !imagePreviewUrl && !isCameraOpen && !isMonetagAdShowing ? 'border-primary border-solid shadow-lg shadow-primary/10' : ''} 
+              ${isProMode && !isScanningActive && !isCameraOpen ? 'border-primary border-solid shadow-lg shadow-primary/10' : ''} 
               ${imagePreviewUrl ? 'border-solid border-primary' : (isCameraOpen ? 'border-solid border-primary' : 'border-dashed border-border')}`}
             >
               {isCameraOpen ? (
@@ -793,11 +863,11 @@ export default function ScannerPage() {
                 <img src={imagePreviewUrl} alt="Pratinjau Unggahan" className="w-full h-full object-contain rounded-xl" />
               ) : (
                 <div className="flex flex-col items-center justify-center text-center p-4">
-                  <Camera className={`h-16 w-16 sm:h-20 sm:w-20 transition-opacity duration-300 mb-3 ${(isScanningActive || isAdLoading || isMonetagAdShowing) ? 'text-primary opacity-40' : 'text-muted-foreground opacity-70'}`} />
+                  <Camera className={`h-16 w-16 sm:h-20 sm:w-20 transition-opacity duration-300 mb-3 ${(isScanningActive) ? 'text-primary opacity-40' : 'text-muted-foreground opacity-70'}`} />
                   <p className="text-sm text-muted-foreground">Klik "{mainButtonText()}"<br/>atau unggah gambar.</p>
                 </div>
               )}
-              {!isCameraOpen && !imagePreviewUrl && !isScanningActive && !isAdLoading && !isMonetagAdShowing && (
+              {!isCameraOpen && !imagePreviewUrl && !isScanningActive && (
                   <>
                     <div className={`absolute top-2 left-2 w-6 h-6 sm:w-8 sm:h-8 border-t-[3px] border-l-[3px] rounded-tl-lg ${isProMode ? 'border-primary' : 'border-border'}`}></div>
                     <div className={`absolute top-2 right-2 w-6 h-6 sm:w-8 sm:h-8 border-t-[3px] border-r-[3px] rounded-tr-lg ${isProMode ? 'border-primary' : 'border-border'}`}></div>
@@ -805,10 +875,10 @@ export default function ScannerPage() {
                     <div className={`absolute bottom-2 right-2 w-6 h-6 sm:w-8 sm:h-8 border-b-[3px] border-r-[3px] rounded-br-lg ${isProMode ? 'border-primary' : 'border-border'}`}></div>
                   </>
               )}
-              {imagePreviewUrl && !isScanningActive && !isAdLoading && !isCameraOpen && !isMonetagAdShowing && (
+              {imagePreviewUrl && !isScanningActive && !isCameraOpen && (
                 <button onClick={handleRemoveImage} className="absolute top-2 right-2 p-1.5 bg-black/60 rounded-full text-white hover:bg-black/80 transition-colors z-20 focus:outline-none focus:ring-2 focus:ring-primary" aria-label="Buang gambar"><XCircle className="w-5 h-5 sm:w-6 sm:h-6" /></button>
               )}
-              {(isMonetagAdShowing || (isScanningActive && !isCameraOpen) || (isAdLoading && !isCameraOpen) ) && (
+              {(isScanningActive) && (
                   <div className="absolute inset-0 w-full h-full overflow-hidden rounded-xl bg-black/30 flex items-center justify-center z-10 backdrop-blur-sm"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div>
               )}
               <canvas ref={canvasRef} className="hidden"></canvas>
@@ -821,7 +891,7 @@ export default function ScannerPage() {
                 disabled={mainButtonDisabled}
                 className={`w-full font-semibold py-3 px-6 rounded-xl text-base sm:text-lg transition-all duration-300 ease-in-out transform focus:outline-none focus:ring-4 focus:ring-opacity-50 flex items-center justify-center 
                             ${mainButtonDisabled ? 'bg-neutral-700 text-muted-foreground cursor-not-allowed' : 'bg-primary text-primary-foreground hover:opacity-90 hover:shadow-lg focus:ring-primary/50'}`}>
-              { (isAdLoading || isMonetagAdShowing || (isScanningActive && !isCameraOpen && !mainButtonText().includes("Menganalisis")) ) && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
+              { (isScanningActive) && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
               {mainButtonText()}
             </button>
             <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" ref={fileInputRef} id="imageUploadInputScannerPage" />
@@ -843,8 +913,64 @@ export default function ScannerPage() {
           )}
         </div>
         
+        {/* Payment Plans Section */}
+        {!isLoadingAuth && supabaseUser && !isProMode && (
+          <div className="mt-8 w-full max-w-sm bg-card border border-border rounded-2xl shadow-xl p-6">
+            <h2 className="text-2xl font-semibold text-center text-foreground mb-2 flex items-center justify-center">
+              <Sparkles className="w-7 h-7 mr-2 text-primary" /> Upgrade ke Scanner Pro
+            </h2>
+            <p className="text-center text-muted-foreground mb-6 text-sm">Nikmati semua fitur tanpa batas dan tanpa iklan.</p>
+            
+            <div className="space-y-4">
+              {(Object.keys(paymentPlans) as PaymentPlanKey[]).map((planKey) => {
+                const plan = paymentPlans[planKey];
+                const botUsername = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || "YOUR_BOT_USERNAME";
+                const telegramDeepLink = `https://t.me/${botUsername}?start=subscribe_${plan.telegramPlanId}`;
+                const isLoadingThisPlan = isLoadingPurchase === planKey;
+
+                return (
+                  <div key={plan.id} className="p-4 border border-border rounded-lg bg-background/30 shadow-sm">
+                    <h3 className="text-lg font-semibold text-primary">{plan.name}</h3>
+                    <p className="text-sm text-muted-foreground mb-1">{plan.duration} - {plan.features.join(', ')}</p>
+                    
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mt-3 space-y-2 sm:space-y-0 sm:space-x-2">
+                      <button
+                        onClick={() => handlePurchase(planKey)}
+                        disabled={isLoadingThisPlan || isLoadingPurchase !== null}
+                        className={`w-full sm:w-auto flex-1 font-semibold py-2 px-4 rounded-md text-sm transition-colors flex items-center justify-center
+                                    ${isLoadingThisPlan ? 'bg-neutral-600 text-muted-foreground' : 'bg-primary text-primary-foreground hover:bg-primary/90'}
+                                    disabled:opacity-70 disabled:cursor-not-allowed`}
+                      >
+                        {isLoadingThisPlan ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <Crown className="mr-2 h-4 w-4" />
+                        )}
+                        Bayar Rp {plan.midtransPrice.toLocaleString('id-ID')} (Web)
+                      </button>
+                      <a 
+                        href={telegramDeepLink}
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className={`w-full sm:w-auto flex-1 font-semibold py-2 px-4 rounded-md text-sm transition-colors flex items-center justify-center text-center
+                                    bg-sky-500 text-white hover:bg-sky-600
+                                    ${isLoadingPurchase !== null ? 'opacity-70 cursor-not-allowed pointer-events-none' : ''}`}
+                        onClick={(e) => { if(isLoadingPurchase !== null) e.preventDefault(); }}
+                      >
+                        <Star className="mr-2 h-4 w-4" /> Bayar {plan.telegramStars} Stars (Telegram)
+                      </a>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         <footer className="mt-6 text-center">
-          <p className="text-xs text-muted-foreground">{isProMode ? "Anda menggunakan Mode Pro." : "Mode Gratis mungkin menampilkan iklan setelah hasil analisis."}</p>
+          <p className="text-xs text-muted-foreground">{isProMode ? "Anda menggunakan Mode Pro." : 
+            `Mode Gratis: ${dailyScanCount}/${FREE_SCAN_LIMIT} scan hari ini. ${dailyScanCount >= FREE_SCAN_LIMIT ? 'Limit tercapai.' : ''}`
+          }</p>
         </footer>
 
         <style jsx global>{`
