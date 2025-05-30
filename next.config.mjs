@@ -8,6 +8,18 @@ const nextConfig = {
         port: '8080',
         pathname: '/**',
       },
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+        port: '3000',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'placehold.co',
+        port: '',
+        pathname: '/**',
+      }
       // You can add other hostnames here if needed
     ],
   },
