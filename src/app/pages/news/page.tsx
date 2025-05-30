@@ -1,6 +1,7 @@
 'use client';
 
 import React, { SVGProps, useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import Image from 'next/image';
 
 // --- KONFIGURASI WARNA (REMOVED - Using Tailwind theme) ---
 // const colors = { ... };
@@ -100,9 +101,9 @@ export default function NewsPage() {
         try {
           // Coba parse teks tersebut sebagai JSON
           errorPayload = JSON.parse(errorText);
-        } catch (e) {
+        } catch {
           // Jika parsing JSON gagal, berarti respons error bukan JSON
-          console.error("API Error Response (Non-JSON):", response.status, errorText); // Potential source
+          console.error("API Error Response (Non-JSON):", response.status, errorText);
           errorPayload = { 
             error: `Server mengembalikan respons non-JSON (Status: ${response.status}). Isi respons: ${errorText.substring(0, 200)}${errorText.length > 200 ? '...' : ''}`, 
             details: errorText 
@@ -141,12 +142,13 @@ export default function NewsPage() {
       });
       setAvailableCategories(Array.from(categories).sort());
 
-    } catch (err: any) {
-      console.error("Error fetching news in component:", err); // Most likely source if others don't match
+    } catch (err: unknown) {
+      console.error("Error fetching news in component:", err);
+      const message = err instanceof Error ? err.message : String(err);
       if (!isAutoRefresh) { 
-          setError(err.message || "Terjadi kesalahan saat mengambil berita.");
+          setError(message || "Terjadi kesalahan saat mengambil berita.");
       } else {
-          console.warn("Auto-refresh failed silently:", err.message);
+          console.warn("Auto-refresh failed silently:", message);
       }
       if (!isAutoRefresh) {
           setNewsArticles([]);
@@ -280,16 +282,17 @@ export default function NewsPage() {
                 className="bg-card border-border rounded-xl border overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 flex flex-col group"
               >
                 <div className="relative w-full h-48 sm:h-56 overflow-hidden">
-                  <img
-                    src={news.imageUrl || `https://placehold.co/600x400/1E1E1E/E0E0E0?text=${encodeURIComponent(news.category || 'Berita')}&font=poppins`}
-                    alt={news.imageAlt || news.title}
-                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                    onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.src = `https://placehold.co/600x400/333333/A0A0A0?text=Error+Img&font=poppins`;
-                        target.alt = "Gagal memuat gambar";
-                    }}
-                  />
+                  {news.imageUrl && (
+                    <div className="relative w-full h-48 sm:h-56">
+                      <Image 
+                        src={news.imageUrl} 
+                        alt={news.imageAlt || news.title} 
+                        layout="fill" 
+                        objectFit="cover"
+                        className="transition-transform duration-300 group-hover:scale-105"
+                      />
+                    </div>
+                  )}
                   {news.category && (
                     <div
                         className="absolute top-3 right-3 px-2.5 py-1 rounded-md bg-primary/80 backdrop-blur-sm"
@@ -334,7 +337,7 @@ export default function NewsPage() {
              <div className="text-center py-10">
                 <SearchIcon className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
                 <p className="text-lg text-foreground">
-                    Tidak ada berita yang ditemukan untuk "<span className="font-semibold">{lastFetchedQuery}</span>".
+                    Tidak ada berita yang ditemukan untuk &quot;<span className="font-semibold">{lastFetchedQuery}</span>&quot;.
                 </p>
                 <p className="text-sm mt-1 text-muted-foreground">
                     Coba gunakan kata kunci lain atau topik yang lebih umum.

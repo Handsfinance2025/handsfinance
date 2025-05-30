@@ -20,9 +20,9 @@ interface SnapWindow extends Window {
 }
 
 interface SnapPayOptions {
-  onSuccess?: (result: any) => void;
-  onPending?: (result: any) => void;
-  onError?: (result: any) => void;
+  onSuccess?: (result: unknown) => void;
+  onPending?: (result: unknown) => void;
+  onError?: (result: unknown) => void;
   onClose?: () => void;
   // Add other callback options as needed from Midtrans documentation
 }
@@ -114,9 +114,10 @@ export default function ProPage() {
         throw new Error('Failed to get payment token.');
       }
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Purchase Error:', err);
-      setError(err.message || 'An unexpected error occurred.');
+      const message = err instanceof Error ? err.message : String(err);
+      setError(message || 'An unexpected error occurred.');
       setLoadingPlan(null);
     }
   };

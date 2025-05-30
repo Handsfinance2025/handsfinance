@@ -5,8 +5,8 @@
 import { Poppins } from "next/font/google"; // Import Poppins
 import "./globals.css"; // Pastikan file CSS global Anda mengimpor Tailwind
 import BottomNav from "@/components/navigation"; // Assuming this path is correct
-import Script from 'next/script';
-import { useState, useEffect } from 'react'; // Added for splash screen state
+
+import { useState } from 'react'; // Added for splash screen state
 import SplashScreen from '@/components/SplashScreen'; // Added SplashScreen import
 import { useRouter, usePathname } from 'next/navigation'; // Import useRouter and usePathname
 

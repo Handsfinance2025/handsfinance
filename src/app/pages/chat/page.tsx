@@ -117,11 +117,11 @@ export default function ChatPage() {
         try {
           const errorData = await response.json();
           errorDataMessage = errorData.error || JSON.stringify(errorData) || errorDataMessage;
-        } catch (jsonError) {
+        } catch {
           try {
             const errorText = await response.text();
             errorDataMessage = errorText ? `${errorDataMessage}: ${errorText}` : errorDataMessage;
-          } catch (textParseError) {
+          } catch {
              errorDataMessage = `Error from bot server (${response.status} ${response.statusText}) - Gagal membaca detail error.`;
           }
         }

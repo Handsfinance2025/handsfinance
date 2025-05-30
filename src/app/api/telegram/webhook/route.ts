@@ -97,7 +97,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ message: 'OK' });
       }
       const userId = from.id;
-      const username = from.username;
+      const _username = from.username;
 
       let planKey: TelegramPlanKey | null = null;
       if (text.startsWith('/subscribe trial') || text.startsWith('/start trial')) {
@@ -157,7 +157,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ message: 'OK' });
       }
       const userId = from.id;
-      const username = from.username;
+      const _username = from.username;
 
       // Extract planId from invoice_payload (which we set as uniquePayload)
       const payloadParts = payment.invoice_payload.split('-');
@@ -173,7 +173,7 @@ export async function POST(req: NextRequest) {
 
       if (matchedPlanKey) {
         const plan = telegramPlans[matchedPlanKey];
-        const subResult = await updateUserSubscriptionForTelegram(userId, username, matchedPlanKey, payment.total_amount, payment.telegram_payment_charge_id);
+        const subResult = await updateUserSubscriptionForTelegram(userId, _username, matchedPlanKey, payment.total_amount, payment.telegram_payment_charge_id);
         if (subResult.success) {
           bot.sendMessage(chatId, `Thank you for your purchase of ${plan.name}! Your access has been granted.`);
         } else {
@@ -190,6 +190,6 @@ export async function POST(req: NextRequest) {
     console.error('Telegram Webhook Error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Internal server error';
     // Avoid sending error details back to Telegram unless it's a specific format they expect for retries etc.
-    return NextResponse.json({ error: 'Failed to process Telegram update' }, { status: 200 }); // Respond 200 to Telegram to avoid retries on internal errors
+    return NextResponse.json({ error: errorMessage, details: 'Failed to process Telegram update' }, { status: 200 }); // Respond 200 to Telegram to avoid retries on internal errors
   }
 } 

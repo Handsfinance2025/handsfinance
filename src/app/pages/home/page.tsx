@@ -1,6 +1,7 @@
 'use client';
 
 import React, { SVGProps, useState, useEffect } from 'react';
+import Image from 'next/image';
 
 // --- Definisi Warna Baru (REMOVED - using Tailwind theme) ---
 // const newColors = { ... };
@@ -19,7 +20,7 @@ const SlidersHorizontalIcon = (props: SVGProps<SVGSVGElement>) => (
 );
 
 const InfoIcon = (props: SVGProps<SVGSVGElement>) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M12 2a10 10 0 0 0-6.32 17.9A10 10 0 0 0 12 22a10 10 0 0 0 6.32-2.1A10 10 0 0 0 12 2Z"/></svg>
 );
 
 const BotIcon = (props: SVGProps<SVGSVGElement>) => (
@@ -114,7 +115,7 @@ const SimpleBarChart = ({ data, barColor = "bg-primary", height = "h-[200px]" }:
 
 
 export default function ModernGreenApp() {
-  const [userData, setUserData] = useState({
+  const [userData, _setUserData] = useState({
     name: "Tegar",
     profileType: "Trading Pemula",
     avatarUrl: "https://placehold.co/100x100/1E1E1E/E0E0E0?text=BV", // Updated placeholder for dark theme
@@ -198,7 +199,7 @@ export default function ModernGreenApp() {
           <div className="flex justify-between items-center mb-6">
             <div className="flex items-center space-x-3">
               {userData.avatarUrl ? (
-                <img src={userData.avatarUrl} alt={userData.name} className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 border-primary" />
+                <Image src={userData.avatarUrl} alt={userData.name} width={48} height={48} className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 border-primary" />
               ) : (
                 <UserCircle2Icon className="w-10 h-10 sm:w-12 sm:h-12 text-primary/80" />
               )}
