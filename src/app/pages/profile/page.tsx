@@ -6,6 +6,23 @@ import dynamic from 'next/dynamic'; // 1. Impor 'dynamic'
 import { useRawInitData } from '@telegram-apps/sdk-react';
 // Remove unused import since UserCard doesn't exist in telegram-ui package
 
+interface TelegramUser {
+  id: number;
+  firstName?: string;
+  lastName?: string;
+  username?: string;
+  languageCode?: string;
+  isBot?: boolean;
+  isPremium?: boolean;
+  photoUrl?: string;
+  // Add other properties as needed based on the actual structure of initData.user
+}
+
+// Define an interface for the parsed initData if it's a string
+interface ParsedInitData {
+  user?: TelegramUser;
+  // Add other properties from initData as needed
+}
 
 
 
@@ -53,36 +70,21 @@ const LoginButton = dynamic(() => import('@/components/LoginButton'), {
 // --- Komponen Utama FinanceProfilePage ---
 export default function FinanceProfilePage() {
   const initDataRaw = useRawInitData();
-  interface TelegramUser {
-    id: number;
-    firstName?: string;
-    lastName?: string;
-    username?: string;
-    languageCode?: string;
-    isBot?: boolean;
-    isPremium?: boolean;
-    photoUrl?: string;
-    // Add other properties as needed based on the actual structure of initData.user
-  }
-  
-  // Define an interface for the parsed initData if it's a string
-  interface ParsedInitData {
-    user?: TelegramUser;
-    // Add other properties from initData as needed
-  }
-  
+ 
   let telegramUser: TelegramUser | null = null; 
 
   if (typeof initDataRaw === 'string') {
     try {
-      const parsedData = JSON.parse(initDataRaw);
-      telegramUser = parsedData?.user; // Gunakan optional chaining
+      // Explicitly type parsedData with ParsedInitData
+      const parsedData: ParsedInitData = JSON.parse(initDataRaw);
+      telegramUser = parsedData?.user || null; 
     } catch (error) {
       console.error("Gagal mem-parsing initData:", error);
       // telegramUser tetap null
     }
   } else if (initDataRaw && typeof initDataRaw === 'object') {
-    telegramUser = (initDataRaw as any)?.user; // Gunakan optional chaining dan type assertion jika perlu
+    // Type initDataRaw as InitDataObject before accessing its user property
+    telegramUser = (initDataRaw as ParsedInitData)?.user || null;
   }
 
   const [profileData, setProfileData] = useState({
