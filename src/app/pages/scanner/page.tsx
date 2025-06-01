@@ -355,7 +355,39 @@ export default function ScannerPage() {
     setIsScanningActive(false); 
   }, []);
 
+  // New useEffect block as per plan
+  useEffect(() => {
+    // Pastikan komponen sudah termuat sepenuhnya
+    // Pertimbangkan untuk memanggil openCamera di sini jika diperlukan saat mount
+    // dan jika videoRef.current dijamin sudah ada.
+    // Contoh sederhana:
+    if (!isCameraOpen && !isScanningActive) { // Only open if camera is not already active
+      const timeoutId = setTimeout(() => {
+        if (videoRef.current) {
+          openCamera();
+        }
+      }, 100); // Penundaan kecil untuk memberi waktu DOM render
+      return () => clearTimeout(timeoutId);
+    }
+  }, [isCameraOpen, isScanningActive]); // Dependencies for camera auto-open effect
+
+  useEffect(() => {
+    console.log('Video ref in useEffect:', videoRef.current);
+    // Logika lain yang mungkin ada di sini
+  }, []); // Atau dengan dependensi yang sesuai
+
+  const handleOpenCameraClick = () => {
+    console.log('Video ref before openCamera call:', videoRef.current);
+    openCamera();
+  };
+
   const openCamera = useCallback(async () => {
+    if (!videoRef.current) {
+      setFeedbackMessage('Komponen video belum siap. Coba lagi sesaat.');
+      setIsCameraOpen(false); // Interpreted setIsCameraReady as setIsCameraOpen, and removed setFeedbackType/setIsScanningActive from this specific error path as per plan's diff
+      return;
+    }
+
     if (isScanningActive || isCameraOpen) return;
     setIsScanningActive(true); 
     setFeedbackMessage('Mengakses kamera...');
@@ -367,7 +399,7 @@ export default function ScannerPage() {
     if (navigator.mediaDevices?.getUserMedia) {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-        if (videoRef.current) {
+        if (videoRef.current) { // This check is good
           videoRef.current.srcObject = stream;
           videoRef.current.onloadedmetadata = () => {
             videoRef.current?.play().then(() => {
@@ -385,8 +417,12 @@ export default function ScannerPage() {
             });
           };
         } else {
+            // This else block was the source of the "Ref video tidak ada" message.
+            // The check at the beginning of the function should prevent reaching here if videoRef.current is null.
             stream.getTracks().forEach(track => track.stop()); setIsScanningActive(false);
-            setFeedbackMessage('Ref video tidak ada.'); setFeedbackType('error');
+            // It's unlikely to reach here if the top check is in place, but as a fallback:
+            setFeedbackMessage('Gagal menginisialisasi video. Ref tidak ditemukan setelah stream didapatkan.'); 
+            setFeedbackType('error');
         }
       } catch (err: unknown) { 
         let message = 'Gagal akses kamera.';

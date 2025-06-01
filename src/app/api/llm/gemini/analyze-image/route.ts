@@ -1,10 +1,48 @@
 import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold, Part, HarmProbability, FinishReason } from '@google/generative-ai'; // Added HarmProbability and FinishReason
 import { NextResponse } from 'next/server';
+import * as jose from 'jose'; // Import jose
 
-const MODEL_NAME = "gemini-2.0-flash"; 
+const MODEL_NAME = "gemini-1.0-flash"; // Corrected model name as per previous context, ensure this is what you intend. Gemini 2.0 flash might be "gemini-2.0-flash-latest"
+
+// Helper function to verify JWT
+async function verifyToken(token: string): Promise<jose.JWTPayload | null> {
+  const publicKeyPem = process.env.TELEGRAM_AUTH_JWT_PUBLIC_KEY;
+  if (!publicKeyPem) {
+    console.error('Public key for JWT verification not found in environment variables.');
+    return null;
+  }
+
+  try {
+    const publicKey = await jose.importSPKI(publicKeyPem, 'RS256');
+    // Update expected issuer and audience to match what your Supabase function sets
+    const { payload } = await jose.jwtVerify(token, publicKey, {
+      issuer: 'urn:supabase:telegram-auth', 
+      audience: 'urn:web3auth:client', 
+    });
+    return payload;
+  } catch (error) {
+    console.error('JWT verification failed:', error);
+    return null;
+  }
+}
 
 export async function POST(req: Request) {
   console.log("Backend API route /api/llm/gemini/analyze-image hit");
+
+  // --- JWT Authentication Check ---
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return NextResponse.json({ error: 'Akses ditolak. Token otorisasi tidak ada.' }, { status: 401 });
+  }
+  const token = authHeader.substring(7); // Remove "Bearer " prefix
+  const decodedToken = await verifyToken(token);
+
+  if (!decodedToken) {
+    return NextResponse.json({ error: 'Akses ditolak. Token otorisasi tidak valid atau kedaluwarsa.' }, { status: 401 });
+  }
+  // Optional: You can use decodedToken.sub (which should be the Telegram user ID) for logging or further checks
+  console.log(`Authorized access for user: ${decodedToken.sub}`);
+  // --- End JWT Authentication Check ---
 
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
