@@ -1,11 +1,8 @@
 // app/layout.tsx
 'use client'; // Sesuai permintaan pengguna
 
-
-import { Poppins } from "next/font/google"; // Import Poppins
 import "./globals.css"; // Pastikan file CSS global Anda mengimpor Tailwind
 import BottomNav from "@/components/navigation"; // Assuming this path is correct
-
 import { useState } from 'react'; // Added for splash screen state
 import SplashScreen from '@/components/SplashScreen'; // Added SplashScreen import
 import { useRouter, usePathname } from 'next/navigation'; // Import useRouter and usePathname
@@ -13,19 +10,6 @@ import { TonConnectUIProvider } from '@tonconnect/ui-react'; // Ditambahkan
 import { useEffect } from 'react'; // Ditambahkan
 import Head from 'next/head'; // Pastikan Head diimpor dari next/head
 
-// Configure Poppins font
-const poppins = Poppins({
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"], // Include desired weights
-  variable: "--font-poppins", // CSS variable for Tailwind
-});
-
-import type { Metadata } from 'next'
-
-
-interface LayoutProps {
-  children: React.ReactNode;
-}
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const [showSplash, setShowSplash] = useState(true);

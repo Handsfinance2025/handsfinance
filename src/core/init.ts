@@ -17,21 +17,36 @@ import {
   /**
    * Initializes the application and configures its dependencies.
    */
-  export async function init(options: {
-    debug: boolean;
-    eruda: boolean;
-    mockForMacOS: boolean;
-  }): Promise<void> {
+  export async function init(
+    options = {
+      debug: false,
+      eruda: false,
+      mockForMacOS: false,
+    },
+  ): Promise<void> {
     // Set @telegram-apps/sdk-react debug mode and initialize it.
     setDebug(options.debug);
     initSDK();
   
     // Add Eruda if needed.
-    options.eruda &&
+    if (options.eruda) {
       void import('eruda').then(({ default: eruda }) => {
         eruda.init();
-        eruda.position({ x: window.innerWidth - 50, y: 0 });
+        // Pastikan window tersedia (kode ini biasanya untuk client-side)
+        if (typeof window !== 'undefined') {
+          eruda.position({ x: window.innerWidth - 50, y: 0 });
+        }
       });
+    }
+    // Alternatif lain jika ingin tetap dengan short-circuit evaluation dan menonaktifkan rule:
+    // // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+    // options.eruda &&
+    //   void import('eruda').then(({ default: eruda }) => {
+    //     eruda.init();
+    //     if (typeof window !== 'undefined') {
+    //       eruda.position({ x: window.innerWidth - 50, y: 0 });
+    //     }
+    //   });
   
     // Telegram for macOS has a ton of bugs, including cases, when the client doesn't
     // even response to the "web_app_request_theme" method. It also generates an incorrect

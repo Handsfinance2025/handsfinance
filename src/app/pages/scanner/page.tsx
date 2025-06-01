@@ -355,36 +355,11 @@ export default function ScannerPage() {
     setIsScanningActive(false); 
   }, []);
 
-  // New useEffect block as per plan
-  useEffect(() => {
-    // Pastikan komponen sudah termuat sepenuhnya
-    // Pertimbangkan untuk memanggil openCamera di sini jika diperlukan saat mount
-    // dan jika videoRef.current dijamin sudah ada.
-    // Contoh sederhana:
-    if (!isCameraOpen && !isScanningActive) { // Only open if camera is not already active
-      const timeoutId = setTimeout(() => {
-        if (videoRef.current) {
-          openCamera();
-        }
-      }, 100); // Penundaan kecil untuk memberi waktu DOM render
-      return () => clearTimeout(timeoutId);
-    }
-  }, [isCameraOpen, isScanningActive]); // Dependencies for camera auto-open effect
-
-  useEffect(() => {
-    console.log('Video ref in useEffect:', videoRef.current);
-    // Logika lain yang mungkin ada di sini
-  }, []); // Atau dengan dependensi yang sesuai
-
-  const handleOpenCameraClick = () => {
-    console.log('Video ref before openCamera call:', videoRef.current);
-    openCamera();
-  };
-
+  // Pindahkan definisi openCamera ke sini, SEBELUM useEffect yang menggunakannya
   const openCamera = useCallback(async () => {
     if (!videoRef.current) {
       setFeedbackMessage('Komponen video belum siap. Coba lagi sesaat.');
-      setIsCameraOpen(false); // Interpreted setIsCameraReady as setIsCameraOpen, and removed setFeedbackType/setIsScanningActive from this specific error path as per plan's diff
+      setIsCameraOpen(false);
       return;
     }
 
@@ -399,7 +374,7 @@ export default function ScannerPage() {
     if (navigator.mediaDevices?.getUserMedia) {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-        if (videoRef.current) { // This check is good
+        if (videoRef.current) {
           videoRef.current.srcObject = stream;
           videoRef.current.onloadedmetadata = () => {
             videoRef.current?.play().then(() => {
@@ -417,10 +392,7 @@ export default function ScannerPage() {
             });
           };
         } else {
-            // This else block was the source of the "Ref video tidak ada" message.
-            // The check at the beginning of the function should prevent reaching here if videoRef.current is null.
             stream.getTracks().forEach(track => track.stop()); setIsScanningActive(false);
-            // It's unlikely to reach here if the top check is in place, but as a fallback:
             setFeedbackMessage('Gagal menginisialisasi video. Ref tidak ditemukan setelah stream didapatkan.'); 
             setFeedbackType('error');
         }
@@ -440,7 +412,29 @@ export default function ScannerPage() {
       setFeedbackMessage('Fitur kamera tidak didukung.'); setFeedbackType('error');
       setIsCameraOpen(false); setIsScanningActive(false);
     }
-  }, [isScanningActive, imagePreviewUrl, isCameraOpen]); 
+  }, [isScanningActive, isCameraOpen, imagePreviewUrl, setFeedbackMessage, setIsCameraOpen, setFeedbackType, setCameraError, setImagePreviewUrl, setUploadedImage]); // Pastikan semua dependensi state setter juga dimasukkan jika ESLint menyarankannya
+
+  useEffect(() => {
+    if (isCameraOpen && !isScanningActive) {
+      const timeoutId = setTimeout(() => {
+        if (videoRef.current) {
+          openCamera(); // Sekarang openCamera sudah didefinisikan
+        }
+      }, 100);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [isCameraOpen, isScanningActive, openCamera]);
+
+  useEffect(() => {
+    console.log('Video ref in useEffect:', videoRef.current);
+    // Logika lain yang mungkin ada di sini
+  }, []); // Atau dengan dependensi yang sesuai
+
+  // Hapus fungsi ini jika tidak ada tombol atau event yang memanggilnya
+  // const handleOpenCameraClick = () => {
+  //   console.log('Video ref before openCamera call:', videoRef.current);
+  //   openCamera();
+  // }; 
 
   const dataURLtoFile = useCallback((dataurl: string, filename: string): File | null => {
     try {

@@ -1,117 +1,99 @@
-'use client';
-
-import { TonConnectButton, useTonConnectUI, useTonWallet } from '@tonconnect/ui-react';
-import { useEffect, useState } from 'react'; // Ditambahkan useState di sini
-import { createClient } from '@supabase/supabase-js';
-
-// Inisialisasi Supabase client di luar komponen agar tidak dibuat ulang setiap render
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error("Supabase URL atau Anon Key tidak ditemukan. Pastikan variabel lingkungan NEXT_PUBLIC_SUPABASE_URL dan NEXT_PUBLIC_SUPABASE_ANON_KEY sudah diatur.");
-}
-
-const supabase = supabaseUrl && supabaseAnonKey ? createClient(supabaseUrl, supabaseAnonKey) : null;
+import { supabase } from '@/lib/supabaseClient';
+import {
+  useTonConnectUI,
+  useTonWallet,
+  Wallet, 
+  TonConnectButton 
+} from '@tonconnect/ui-react';
+import { useCallback, useEffect, useState } from 'react';
 
 export default function LoginButton() {
-  const [tonConnectUI, setOptions] = useTonConnectUI();
-  const wallet = useTonWallet();
-  const [userSubscription, setUserSubscription] = useState<string | null>(null); // State untuk status langganan
+  const [/* tonConnectUI */, /* setOptions */] = useTonConnectUI(); 
+  const wallet = useTonWallet(); // 'wallet' didefinisikan di sini
+  const [userSubscription, setUserSubscription] = useState<string | null>(null); 
 
-  useEffect(() => {
-    if (wallet) {
-      console.log('Wallet connected:', wallet);
-      handleSupabaseLogin(wallet);
-    }
-  }, [wallet]);
-
-  const fetchUserSubscription = async (userId: string) => {
+  const fetchUserSubscription = useCallback(async (userId: string) => {
     if (!supabase) return null;
-    // Contoh: Ambil status langganan dari tabel 'subscriptions'
     const { data, error } = await supabase
       .from('subscriptions')
       .select('status')
-      .eq('user_id', userId) // Asumsi Anda memiliki user_id yang terkait dengan wallet_address
+      .eq('user_id', userId)
       .single();
 
     if (error) {
       console.error('Error fetching subscription:', error);
       return null;
     }
-    return data ? data.status : 'free_with_ads'; // Default ke free jika tidak ada data
-  };
+    return data ? data.status : 'free_with_ads';
+  }, []);
 
-  const handleSupabaseLogin = async (connectedWallet: any) => {
+  const handleSupabaseLogin = useCallback(async (connectedWallet: Wallet) => { // 'connectedWallet' adalah parameter di sini
     if (!supabase) {
       console.error("Supabase client tidak terinisialisasi.");
       return;
     }
 
+    // Pastikan kita menggunakan 'connectedWallet' dari parameter fungsi ini
     const userFriendlyAddress = connectedWallet.account.address;
     const chain = connectedWallet.account.chain;
 
     try {
       const { data: userData, error: upsertError } = await supabase
-        .from('users')
-        .upsert(
-          {
-            wallet_address: userFriendlyAddress,
-            last_login_at: new Date(),
-            network_chain: chain,
-          },
-          {
-            onConflict: 'wallet_address',
-          }
-        )
-        .select('id') // Ambil ID pengguna setelah upsert
-        .single(); // Asumsi wallet_address unik dan kita mendapatkan satu user
+        .from('users') 
+        .upsert({
+          wallet_address: userFriendlyAddress,
+          chain: chain, // Menggunakan 'chain' dari 'connectedWallet'
+          last_login_at: new Date(), // Menambahkan last_login_at seperti di versi duplikat
+        })
+        .select('id, subscription_status') 
+        .single();
 
-      if (upsertError) {
-        console.error('Supabase upsert error:', upsertError);
-        alert(`Error Supabase: ${upsertError.message}`);
-        return;
-      }
+      if (upsertError) throw upsertError;
 
-      console.log('Supabase user data:', userData);
-      alert(`Login berhasil dengan wallet: ${userFriendlyAddress}`);
+      if (userData) {
+        console.log('User logged in/updated:', userData);
+        // Menggunakan userData.id untuk fetchUserSubscription
+        const subscription = await fetchUserSubscription(userData.id);
+        setUserSubscription(subscription);
+        console.log('User subscription status:', subscription);
 
-      if (userData && userData.id) {
-        // Ambil status langganan pengguna
-        const subscriptionStatus = await fetchUserSubscription(userData.id);
-        setUserSubscription(subscriptionStatus);
-        console.log('User subscription status:', subscriptionStatus);
-
-        if (subscriptionStatus === 'free_with_ads') {
-          // TODO: Tampilkan logika untuk iklan
+        if (subscription === 'free_with_ads') {
           console.log('User is on free plan with ads. Show ads.');
-        } else if (subscriptionStatus === 'pro') {
-          // TODO: Aktifkan fitur pro
+        } else if (subscription === 'pro') {
           console.log('User is on pro plan. Unlock pro features.');
         }
       }
-
-    } catch (e) {
-      console.error('Error during Supabase login:', e);
-      alert('Terjadi kesalahan saat login ke Supabase.');
+    } catch (error) {
+      console.error('Error during Supabase login/upsert:', error);
+      alert('Terjadi kesalahan saat login ke Supabase.'); // Memberikan feedback ke user
     }
-  };
+  }, [fetchUserSubscription, setUserSubscription]);
+
+  useEffect(() => {
+    if (wallet) { // 'wallet' dari useTonWallet() digunakan di sini
+      console.log('Wallet connected:', wallet);
+      handleSupabaseLogin(wallet); // Meneruskan 'wallet' sebagai 'connectedWallet' ke handleSupabaseLogin
+    }
+  }, [wallet, handleSupabaseLogin]);
+
+  // Bagian kode yang menyebabkan error karena 'connectedWallet' tidak terdefinisi di scope ini telah dihapus
+  // bersama dengan fungsi duplikat 'handleSupabaseLogin'.
+  // Baris seperti 'const userFriendlyAddress = connectedWallet.account.address;' akan error jika di luar fungsi
+  // yang menerima 'connectedWallet' sebagai parameter.
 
   return (
     <div>
       <TonConnectButton />
-      {wallet && (
+      {wallet && ( // 'wallet' dari useTonWallet() digunakan di sini
         <div>
           <p>Connected Wallet: {wallet.account.address}</p>
           <p>Chain: {wallet.account.chain}</p>
           {userSubscription && <p>Subscription: {userSubscription}</p>}
         </div>
       )}
-      {/* Contoh bagaimana Anda bisa menampilkan konten berdasarkan langganan */}
       {userSubscription === 'free_with_ads' && (
         <div className="mt-4 p-4 bg-yellow-100 text-yellow-700 rounded">
           Anda menggunakan versi gratis dengan iklan.
-          {/* TODO: Tempatkan komponen iklan di sini */}
         </div>
       )}
     </div>
