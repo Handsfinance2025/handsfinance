@@ -19,6 +19,7 @@
     "@google/generative-ai": "^0.24.1",
     "@supabase/ssr": "^0.6.1",
     "@supabase/supabase-js": "^2.49.8",
+    "@telegram-apps/bridge": "^2.8.2",
     "@telegram-apps/sdk-react": "^3.3.0",
     "@telegram-apps/telegram-ui": "^2.1.8",
     "@tonconnect/ui-react": "^2.1.0",

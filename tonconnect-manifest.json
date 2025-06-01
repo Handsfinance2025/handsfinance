@@ -1,6 +1,10 @@
 {
   "url": "https://handsfinance.my.id/",
   "name": "tanara",
+  "shortName": "tanara",
+  "description": "tanara",
+  "version": "1.0.0",
+  
 
   "iconUrl": "https://handsfinance.my.id//image/logo.png" 
 }
