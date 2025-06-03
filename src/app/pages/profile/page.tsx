@@ -9,6 +9,8 @@ import { isTMA } from '@telegram-apps/bridge';
 // Explicitly import NextImage to avoid conflict with global Image if any
 import NextImage from 'next/image'; 
 
+const DAPP_MANIFEST_URL = 'https://your-dapp-url.com/tonconnect-manifest.json';
+
 // --- INTERFACES (as provided in your original code) ---
 interface TelegramUser {
   id: number;
@@ -58,8 +60,7 @@ const CameraIcon = () => (
   </svg>
 );
 
-// --- DYNAMICALLY IMPORTED LOGIN BUTTON (from original code) ---
-// Ensure this path is correct for your project structure.
+
 const LoginButton = dynamic(() => import('../../../components/LoginButton').catch(err => {
   // Optional: Add error handling for the dynamic import itself
   console.error("Failed to load LoginButton:", err);
@@ -70,9 +71,7 @@ const LoginButton = dynamic(() => import('../../../components/LoginButton').catc
 }), { ssr: false });
 
 
-// --- CLIENT-SIDE LOGIC COMPONENT ---
-// This component encapsulates all logic that depends on browser APIs or client-side hooks.
-// It will be dynamically imported with ssr: false.
+
 const ProfileLogicLoader = ({
   setProfileData,
   setIsLoadingParent

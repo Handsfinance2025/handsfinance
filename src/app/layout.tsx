@@ -10,22 +10,14 @@ import { TonConnectUIProvider } from '@tonconnect/ui-react'; // Ditambahkan
 import Head from 'next/head'; // Pastikan Head diimpor dari next/head
 import { AppRoot } from '@telegram-apps/telegram-ui'; // Import AppRoot
 
-
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const [showSplash, setShowSplash] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
   
-
-  // Gunakan URL absolut ke manifest Anda.
-  // Pastikan file tonconnect-manifest.json ada di folder public.
-  // Ganti 'https://yourdomain.com' dengan domain Anda jika sudah di-deploy.
-  // Untuk development, jika app berjalan di localhost:3000, maka '/tonconnect-manifest.json' akan resolve ke sana.
-  const manifestUrl = '/tonconnect-manifest.json'; 
-  // Atau jika Anda ingin lebih eksplisit untuk development:
-  // const manifestUrl = process.env.NODE_ENV === 'production' 
-  //  ? 'https://yourdomain.com/tonconnect-manifest.json' 
-  //  : 'http://localhost:3000/tonconnect-manifest.json';
+  const manifestUrl = process.env.NODE_ENV === 'production' 
+   ? 'https://https://handsfinance.my.id//tonconnect-manifest.json' 
+   : 'http://localhost:3000/tonconnect-manifest.json';
 
   useEffect(() => {
     if (typeof window !== 'undefined' && window.Telegram && window.Telegram.WebApp) {
