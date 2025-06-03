@@ -1,9 +1,10 @@
-import type { NextConfig } from "next";
-
-
-const nextConfig: NextConfig = {
-  // transpilePackages: ['@ionic/react', '@stencil/core'], // Tambahkan paket lain jika perlu
-};
-  /* config options here */
-
-export default nextConfig;
+/**
+ * @type {import('next').NextConfig}
+ */
+const nextConfig: import('next').NextConfig = {
+   
+    env: {
+      NEXT_PUBLIC_BASE_URL: process.env.NEXT_PUBLIC_BASE_URL,
+    },
+  }
+  export default nextConfig;
