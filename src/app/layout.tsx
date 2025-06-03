@@ -3,12 +3,12 @@
 
 import "./globals.css"; // Pastikan file CSS global Anda mengimpor Tailwind
 import BottomNav from "@/components/navigation"; // Assuming this path is correct
-import { useState } from 'react'; // Added for splash screen state
+import { useState, useEffect } from 'react'; // Added for splash screen state and useEffect
 import SplashScreen from '@/components/SplashScreen'; // Added SplashScreen import
 import { useRouter, usePathname } from 'next/navigation'; // Import useRouter and usePathname
 import { TonConnectUIProvider } from '@tonconnect/ui-react'; // Ditambahkan
-import { useEffect } from 'react'; // Ditambahkan
 import Head from 'next/head'; // Pastikan Head diimpor dari next/head
+import { AppRoot } from '@telegram-apps/telegram-ui'; // Import AppRoot
 
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -55,7 +55,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </Head>
       <body>
         <TonConnectUIProvider manifestUrl={manifestUrl}>
-
+          <AppRoot>
             {showSplash && <SplashScreen onFinished={handleSplashFinished} />}
             
             {/* Main container for centering content - can be adjusted */}
@@ -70,7 +70,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             {/* TelegaIn SDK script - ensure this is still needed and configured correctly */}
             {/* If Script needs to be loaded after splash, additional logic might be needed */}
             {/* For now, assuming it can load with the initial HTML structure */}
-       
+          </AppRoot>
         </TonConnectUIProvider>
       </body>
     </html>
