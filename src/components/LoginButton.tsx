@@ -8,9 +8,7 @@ import {
 import { useCallback, useEffect, useState } from 'react';
 
 export default function LoginButton() {
-  // tonConnectUI dapat digunakan untuk memodifikasi UI secara dinamis jika diperlukan,
-  // tetapi untuk konfigurasi awal seperti manifestUrl, lebih baik dilakukan di TonConnectUIProvider.
-  const [tonConnectUI, setOptions] = useTonConnectUI();
+  
   const wallet = useTonWallet(); // 'wallet' didefinisikan di sini
   const [userSubscription, setUserSubscription] = useState<string | null>(null);
 

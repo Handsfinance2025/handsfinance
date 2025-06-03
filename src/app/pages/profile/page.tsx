@@ -9,7 +9,7 @@ import { isTMA } from '@telegram-apps/bridge';
 // Explicitly import NextImage to avoid conflict with global Image if any
 import NextImage from 'next/image'; 
 
-const DAPP_MANIFEST_URL = 'https://your-dapp-url.com/tonconnect-manifest.json';
+
 
 // --- INTERFACES (as provided in your original code) ---
 interface TelegramUser {
