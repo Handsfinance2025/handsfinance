@@ -1,6 +1,5 @@
 import { supabase } from '@/lib/supabaseClient'; // Pastikan path ini benar
 import {
-  useTonConnectUI,
   useTonWallet,
   Wallet,
   TonConnectButton
