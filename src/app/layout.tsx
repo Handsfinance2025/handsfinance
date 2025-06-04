@@ -2,48 +2,93 @@
 'use client'; // Sesuai permintaan pengguna
 
 import "./globals.css"; // Pastikan file CSS global Anda mengimpor Tailwind
-import BottomNav from "@/components/navigation"; // Assuming this path is correct
-import { useState, useEffect } from 'react'; // Added for splash screen state and useEffect
-import SplashScreen from '@/components/SplashScreen'; // Added SplashScreen import
-import { useRouter } from 'next/navigation'; 
+import BottomNav from "@/components/navigation"; // Asumsi path ini benar
+import { useState, useEffect } from 'react'; // useEffect sekarang digunakan
+import SplashScreen from '@/components/SplashScreen'; // Asumsi path ini benar
+import { useRouter } from 'next/navigation';
 import { TonConnectUIProvider } from '@tonconnect/ui-react'; // Ditambahkan
 import Head from 'next/head'; // Pastikan Head diimpor dari next/head
 import { AppRoot } from '@telegram-apps/telegram-ui'; // Import AppRoot
 
+// Mendefinisikan tipe untuk window.Telegram.WebApp
+// Ini membantu menghindari penggunaan 'any' dan memberikan type safety yang lebih baik.
+interface TelegramWebApp {
+  // Anda dapat menambahkan properti spesifik dari WebApp di sini jika Anda mengetahuinya
+  // Contoh: initData?: string; version?: string;
+  // Untuk saat ini, kita gunakan [key: string]: any; jika strukturnya tidak diketahui secara detail
+  // atau jika hanya keberadaannya yang perlu diperiksa.
+  [key: string]: any;
+}
+
+interface WindowWithTelegram extends Window {
+  Telegram?: {
+    WebApp?: TelegramWebApp;
+  };
+}
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const [showSplash, setShowSplash] = useState(true);
   const router = useRouter();
-  
-  const manifestUrl = process.env.NEXT_PUBLIC_MANIFEST_URL;
-  if (typeof window !== "undefined") {
-    setInterval(() => {
-      if (typeof window !== "undefined") {
-        const isTelegram = (window as any).Telegram?.WebApp;
-        if (isTelegram) {
+
+  // Ambil manifestUrl dari environment variable.
+  // Memberikan string kosong sebagai fallback jika variabel tidak terdefinisi
+  // untuk mencegah error pada TonConnectUIProvider jika ia mengharapkan string.
+  const manifestUrl = process.env.NEXT_PUBLIC_MANIFEST_URL || "";
+
+  useEffect(() => {
+    // Efek ini akan berjalan setelah komponen di-mount dan setiap kali nilai `showSplash` berubah.
+    // Tujuannya adalah untuk memeriksa apakah aplikasi berjalan di dalam lingkungan Telegram.
+    if (showSplash && typeof window !== "undefined") {
+      // Pemeriksaan dilakukan secara berkala menggunakan setInterval.
+      const intervalId = setInterval(() => {
+        // Menggunakan tipe WindowWithTelegram yang sudah didefinisikan.
+        const w = window as WindowWithTelegram;
+        if (w.Telegram?.WebApp) {
+          // Jika Telegram WebApp terdeteksi, sembunyikan splash screen.
           setShowSplash(false);
+          // Penting: Hentikan interval setelah kondisi terpenuhi untuk mencegah pemanggilan berulang.
+          clearInterval(intervalId);
         }
-      }
-    }, 1000);
-  }
+      }, 1000); // Interval pemeriksaan setiap 1 detik.
+
+      // Fungsi cleanup: Ini akan dipanggil saat komponen di-unmount
+      // atau sebelum efek ini dijalankan kembali (jika dependensi berubah).
+      // Ini penting untuk mencegah kebocoran memori.
+      return () => {
+        clearInterval(intervalId);
+      };
+    }
+  }, [showSplash]); // Array dependensi: efek ini akan dijalankan ulang jika `showSplash` berubah.
 
   const handleSplashFinished = () => {
     setShowSplash(false);
+    // Navigasi ke halaman utama setelah splash screen selesai.
     router.push("/pages/home");
   };
+
   return (
     <html lang="en" suppressHydrationWarning={true}>
       <Head>
+        {/* Menambahkan judul default dan deskripsi untuk praktik terbaik SEO */}
+        <title>Aplikasi Next.js Saya</title>
+        <meta name="description" content="Aplikasi Mini Telegram dengan Next.js" />
         <link rel="icon" href="/image/logo.png" type="image/png" />
       </Head>
       <body>
         <TonConnectUIProvider manifestUrl={manifestUrl}>
           <AppRoot>
+            {/* Render SplashScreen secara kondisional */}
             {showSplash && <SplashScreen onFinished={handleSplashFinished} />}
+
+            {/* Konten utama aplikasi */}
+            {/* Kelas 'flex' diterapkan saat showSplash false (membuatnya terlihat) */}
+            {/* Kelas 'hidden' diterapkan saat showSplash true */}
             <div className={`container mx-auto max-w-md min-h-screen flex-col ${showSplash ? 'hidden' : 'flex'}`}>
               <main className="flex-grow pt-5 pb-20">
                 {children}
               </main>
-              <BottomNav />
+              {/* BottomNav hanya akan ditampilkan jika splash screen tidak aktif */}
+              {!showSplash && <BottomNav />}
             </div>
           </AppRoot>
         </TonConnectUIProvider>
