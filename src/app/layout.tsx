@@ -16,7 +16,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const pathname = usePathname();
   
   const manifestUrl = process.env.NODE_ENV === 'production' 
-   ? 'https://https://handsfinance.my.id//tonconnect-manifest.json' 
+   ? 'https://https://handsfinance.my.id/public/tonconnect-manifest.json' 
    : 'http://localhost:3000/tonconnect-manifest.json';
 
   useEffect(() => {
@@ -28,40 +28,26 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
   const handleSplashFinished = () => {
     setShowSplash(false);
-    // Only redirect if not already on a page that should persist (e.g. deep link)
-    // Or, always redirect to home if that's the desired UX.
-    // For now, let's assume we always want to go to home after the initial splash.
-    if (pathname !== "/pages/home") { // Avoid redundant navigation if already on home
+
+    if (pathname !== "/pages/home") {
       router.push("/pages/home");
     }
   };
-
   return (
     <html lang="en" suppressHydrationWarning={true}>
       <Head>
-        {/* Ganti href dengan path ke logo baru Anda di folder public */}
         <link rel="icon" href="/image/logo.png" type="image/png" />
-        {/* Anda juga bisa menambahkan ukuran lain jika perlu */}
-        {/* <link rel="icon" type="image/png" sizes="32x32" href="/image/logo-32x32.png"> */}
-        {/* <link rel="icon" type="image/png" sizes="16x16" href="/image/logo-16x16.png"> */}
       </Head>
       <body>
         <TonConnectUIProvider manifestUrl={manifestUrl}>
           <AppRoot>
             {showSplash && <SplashScreen onFinished={handleSplashFinished} />}
-            
-            {/* Main container for centering content - can be adjusted */}
-            {/* We conditionally render the main content wrapper or hide it to prevent interaction during splash */} 
             <div className={`container mx-auto max-w-md min-h-screen flex-col ${showSplash ? 'hidden' : 'flex'}`}>
-              <main className="flex-grow pt-5 pb-20"> {/* Padding for header (if any) and bottom nav */}
+              <main className="flex-grow pt-5 pb-20">
                 {children}
               </main>
               <BottomNav />
             </div>
-            
-            {/* TelegaIn SDK script - ensure this is still needed and configured correctly */}
-            {/* If Script needs to be loaded after splash, additional logic might be needed */}
-            {/* For now, assuming it can load with the initial HTML structure */}
           </AppRoot>
         </TonConnectUIProvider>
       </body>
