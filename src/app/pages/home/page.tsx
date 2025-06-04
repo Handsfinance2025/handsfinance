@@ -253,7 +253,7 @@ export default function ModernGreenApp() {
             </div>
           </section>
 
-          {/* Market Trend Section */}
+     
           <section className="p-4 sm:p-5 bg-background border border-border rounded-lg">
             <div className="flex justify-between items-center mb-3">
               <h2 className="text-base sm:text-lg font-semibold text-foreground">Tren Pasar Minggu Ini</h2>
@@ -262,54 +262,37 @@ export default function ModernGreenApp() {
             <SimpleBarChart data={marketTrendData} height="h-[180px] sm:h-[220px]" />
           </section>
 
-          {/* --- Analysis Features Section (REMOVED) --- */}
-          {/* <section className="space-y-4">
-            <h2 className="text-base sm:text-lg font-semibold text-foreground px-1">Fitur Analisis Finansial</h2>
-            {analysisFeatures.map((feature, index) => (
-              <div 
-                key={index} 
-                className="bg-background border border-border rounded-lg p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center group transition-all hover:shadow-lg hover:border-primary/30"
-              >
-                <div className="flex-shrink-0 mb-3 sm:mb-0 sm:mr-4 p-2.5 bg-primary/10 rounded-lg">
-                    <feature.icon className="w-6 h-6 sm:w-7 sm:h-7 text-primary" />
+          {/* News Section - Black and White Modern Theme */}
+          <section>
+            <div className="flex justify-between items-center mb-3">
+              <h2 className="text-base sm:text-lg font-semibold text-white">Berita Terbaru</h2>
+              <button className="text-xs sm:text-sm text-gray-300 hover:underline">Lihat Semua</button>
+            </div>
+            <div className="space-y-4">
+              {[1, 2, 3].map((item) => (
+                <div key={item} className="bg-black p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 flex items-start space-x-4">
+                  <div className="w-24 h-20 bg-gray-800 rounded flex-shrink-0">
+                    {/* Placeholder for news image - Anda bisa menggantinya dengan <Image /> dari Next.js */}
+                  </div>
+                  <div className="flex-grow">
+                    <h3 className="text-sm sm:text-md font-semibold text-white mb-1 line-clamp-2">
+                      Judul Berita Panjang yang Mungkin Membutuhkan Dua Baris atau Lebih
+                    </h3>
+                    <p className="text-xs sm:text-sm text-gray-400 line-clamp-2 mb-1">
+                      Ini adalah deskripsi singkat dari berita. Konten ini akan menjelaskan poin utama dari artikel berita tersebut secara ringkas.
+                    </p>
+                    <div className="text-xs text-gray-500">
+                      <span>Sumber Berita</span> | <span>2 jam yang lalu</span>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex-grow">
-                  <h3 className="text-sm sm:text-base font-semibold mb-1 text-foreground">{feature.title}</h3>
-                  <p className="text-xs sm:text-sm text-muted-foreground mb-3 leading-relaxed">
-                    {feature.description.split('\n').map((line, i) => (
-                      <React.Fragment key={i}>
-                        {line.split(/(\*[^*]+\*)/g).map((part, j) => 
-                          part.startsWith('*') && part.endsWith('*') ? 
-                          <strong key={j} className="font-medium text-foreground/90">{part.slice(1, -1)}</strong> : 
-                          part
-                        )}
-                        {i < feature.description.split('\n').length - 1 && <br />}
-                      </React.Fragment>
-                    ))}
-                  </p>
-                </div>
-                <button 
-                  onClick={feature.action}
-                  className={`mt-2 sm:mt-0 sm:ml-4 flex-shrink-0 text-xs sm:text-sm font-semibold px-4 py-2 rounded-lg transition-colors 
-                              ${feature.buttonStyle === 'secondary' 
-                                ? 'bg-neutral-700 text-foreground hover:bg-neutral-600 focus:ring-2 focus:ring-neutral-500' 
-                                : 'bg-primary text-primary-foreground hover:bg-primary/90 focus:ring-2 focus:ring-primary/70'}`}
-                >
-                  {feature.buttonText}
-                </button>
-              </div>
-            ))}
-          </section> */}
+              ))}
+            </div>
+          </section>
+          {/* End of News Section */}
 
         </div>
       </main>
-
-      {/* Footer (if any, keep simple for dark theme) */}
-      <footer className="text-center py-5 px-4">
-        <p className="text-xs text-muted-foreground">
-          &copy; {new Date().getFullYear()} HandsFinance. All rights reserved.
-        </p>
-      </footer>
     </div>
   );
 }

@@ -223,8 +223,8 @@ export default function FinanceProfilePage() {
     // During SSR or before the client has mounted, show a minimal loading state or return null.
     // This prevents attempting to render DynamicProfileLogic on the server.
       return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900 p-4">
-        <p className="text-gray-700 dark:text-gray-300">Initializing Profile...</p>
+      <div className="flex flex-col items-center justify-center min-h-screen bg-white p-4">
+        <p className="text-black">Initializing Profile...</p>
       </div>
     );
   }
@@ -232,21 +232,21 @@ export default function FinanceProfilePage() {
   // Once the client has mounted, DynamicProfileLogic can be rendered.
   // It will handle its internal loading and then update the `isLoading` state via setIsLoadingParent.
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900 p-4 font-sans">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-white p-4 font-sans">
       {/* Render DynamicProfileLogic only on the client. It will manage data fetching. */}
       {isClientMounted && <DynamicProfileLogic setProfileData={setProfileData} setIsLoadingParent={setIsLoading} />}
 
       {isLoading ? (
         // Show a loading message while DynamicProfileLogic is performing its initial checks.
-        <p className="text-lg text-gray-700 dark:text-gray-300">Loading profile data...</p>
+        <p className="text-lg text-black">Loading profile data...</p>
       ) : (
         // Once loading is complete, render the profile UI with the fetched data.
-        <div className="w-full max-w-md bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 md:p-8">
+        <div className="w-full max-w-md bg-black text-white rounded-xl shadow-2xl p-6 md:p-8">
           <div className="flex flex-col items-center mb-6">
             <div className="relative mb-4">
               <NextImage // Use the aliased import NextImage
                 alt="User Avatar"
-                className="rounded-full object-cover border-4 border-blue-500 dark:border-blue-400"
+                className="rounded-full object-cover border-4 border-gray-700"
                 height={120}
                 src={profileData.avatarUrl}
                 style={{ aspectRatio: '120/120', objectFit: 'cover' }}
@@ -260,36 +260,36 @@ export default function FinanceProfilePage() {
               />
               <button
                 aria-label="Change Profile Picture"
-                className="absolute bottom-0 right-0 bg-blue-500 hover:bg-blue-600 text-white rounded-full p-2 shadow-md transition-colors duration-150"
+                className="absolute bottom-0 right-0 bg-gray-800 hover:bg-gray-700 text-white rounded-full p-2 shadow-md transition-colors duration-150"
               >
                 <CameraIcon />
               </button>
             </div>
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{profileData.name}</h2>
-            <p className="text-gray-600 dark:text-gray-400">{profileData.username}</p>
+            <h2 className="text-2xl font-bold text-white">{profileData.name}</h2>
+            <p className="text-gray-400">{profileData.username}</p>
           </div>
 
           <div className="space-y-4 my-6">
-            <div className="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+            <div className="flex items-center space-x-3 p-3 bg-gray-900 rounded-lg">
               <UserIcon />
-              <span className="text-gray-700 dark:text-gray-300">{profileData.name}</span>
+              <span className="text-gray-300">{profileData.name}</span>
             </div>
-            <div className="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+            <div className="flex items-center space-x-3 p-3 bg-gray-900 rounded-lg">
               <MailIcon />
-              <span className="text-gray-700 dark:text-gray-300">{profileData.username || 'N/A'}</span>
+              <span className="text-gray-300">{profileData.username || 'N/A'}</span>
             </div>
-            <div className="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+            <div className="flex items-center space-x-3 p-3 bg-gray-900 rounded-lg">
               <CalendarIcon />
-              <span className="text-gray-700 dark:text-gray-300">Member since {profileData.memberSince}</span>
+              <span className="text-gray-300">Member since {profileData.memberSince}</span>
             </div>
           </div>
 
-          <div className="mt-6 border-t border-gray-200 dark:border-gray-700 pt-6">
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Account Settings</h3>
+          <div className="mt-6 border-t border-gray-700 pt-6">
+            <h3 className="text-xl font-semibold text-white mb-4">Account Settings</h3>
             <div className="space-y-2">
-                <a href="#" className="block text-blue-600 hover:underline dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors">Edit Profile</a>
-                <a href="#" className="block text-blue-600 hover:underline dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors">Change Password</a>
-                <a href="#" className="block text-blue-600 hover:underline dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors">Notifications</a>
+                <a href="#" className="block text-gray-300 hover:underline hover:text-white transition-colors">Edit Profile</a>
+                <a href="#" className="block text-gray-300 hover:underline hover:text-white transition-colors">Change Password</a>
+                <a href="#" className="block text-gray-300 hover:underline hover:text-white transition-colors">Notifications</a>
             </div>
           </div>
 
