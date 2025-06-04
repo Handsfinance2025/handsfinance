@@ -70,7 +70,7 @@ export default SplashScreen;
 // Contoh jika Anda menggunakan next/image:
 // Ganti src gambar yang lama dengan path ke logo baru Anda
 // Jika logo.png sudah ada di public/image/logo.png:
-<Image src="/image/logo.png" alt="Loading..." width={100} height={100} />
+<Image src="/image/logo.png" alt="Loading" width={100} height={100} />
 
 // Atau jika Anda masih ingin menyimpannya di src/image dan mengimpornya:
 // import appLogo from '@/image/logo.png'; // Pastikan path ini benar
