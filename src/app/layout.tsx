@@ -9,18 +9,27 @@ import { useRouter } from 'next/navigation';
 import { TonConnectUIProvider } from '@tonconnect/ui-react'; // Ditambahkan
 import Head from 'next/head'; // Pastikan Head diimpor dari next/head
 import { AppRoot } from '@telegram-apps/telegram-ui'; // Import AppRoot
-
-// Mendefinisikan tipe untuk window.Telegram.WebApp
-// Ini membantu menghindari penggunaan 'any' dan memberikan type safety yang lebih baik.
 interface TelegramWebApp {
-  // Anda dapat menambahkan properti spesifik dari WebApp di sini jika Anda mengetahuinya
-  // Contoh: initData?: string; version?: string;
-  // Untuk saat ini, kita gunakan [key: string]: unknown; jika strukturnya tidak diketahui secara detail
-  // atau jika hanya keberadaannya yang perlu diperiksa. Ini lebih aman daripada 'any'.
-  [key: string]: unknown; // Mengganti 'any' dengan 'unknown' untuk mengatasi error ESLint
+  initData?: string; version?: string;
+  onEvent?: (event: string) => void;
+  ready?: () => void;
+  onToggleButton?: () => void;
+  onBackButtonClick?: () => void;
+  MainButton?: {
+    isVisible?: boolean;
+    color?: string;
+    textColor?: string;
+    isActive?: boolean;
+    isProgressVisible?: boolean;
+  };
+  BackButton?: {
+    isVisible?: boolean;
+
+  }
+  
 }
 
-interface WindowWithTelegram extends Window {
+interface WindowWithTelegram {
   Telegram?: {
     WebApp?: TelegramWebApp;
   };
@@ -51,9 +60,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         }
       }, 1000); // Interval pemeriksaan setiap 1 detik.
 
-      // Fungsi cleanup: Ini akan dipanggil saat komponen di-unmount
-      // atau sebelum efek ini dijalankan kembali (jika dependensi berubah).
-      // Ini penting untuk mencegah kebocoran memori.
       return () => {
         clearInterval(intervalId);
       };
@@ -62,7 +68,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
   const handleSplashFinished = () => {
     setShowSplash(false);
-    // Navigasi ke halaman utama setelah splash screen selesai.
+  
     router.push("/pages/home");
   };
 
@@ -70,7 +76,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" suppressHydrationWarning={true}>
       <Head>
         {/* Menambahkan judul default dan deskripsi untuk praktik terbaik SEO */}
-        <title>Aplikasi Next.js Saya</title>
+        <title>Tanara</title>
         <meta name="description" content="Aplikasi Mini Telegram dengan Next.js" />
         <link rel="icon" href="/image/logo.png" type="image/png" />
       </Head>
