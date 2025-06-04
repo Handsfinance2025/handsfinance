@@ -15,9 +15,9 @@ import { AppRoot } from '@telegram-apps/telegram-ui'; // Import AppRoot
 interface TelegramWebApp {
   // Anda dapat menambahkan properti spesifik dari WebApp di sini jika Anda mengetahuinya
   // Contoh: initData?: string; version?: string;
-  // Untuk saat ini, kita gunakan [key: string]: any; jika strukturnya tidak diketahui secara detail
-  // atau jika hanya keberadaannya yang perlu diperiksa.
-  [key: string]: any;
+  // Untuk saat ini, kita gunakan [key: string]: unknown; jika strukturnya tidak diketahui secara detail
+  // atau jika hanya keberadaannya yang perlu diperiksa. Ini lebih aman daripada 'any'.
+  [key: string]: unknown; // Mengganti 'any' dengan 'unknown' untuk mengatasi error ESLint
 }
 
 interface WindowWithTelegram extends Window {
