@@ -16,14 +16,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   
   const manifestUrl = process.env.NEXT_PUBLIC_MANIFEST_URL;
   if (typeof window !== "undefined") {
-    useEffect(() => {
-    }, []);
+    setInterval(() => {
+      if (typeof window !== "undefined") {
+        const isTelegram = (window as any).Telegram?.WebApp;
+        if (isTelegram) {
+          setShowSplash(false);
+        }
+      }
+    }, 1000);
   }
-  useEffect(() => {
-    if (typeof window !== 'undefined' && window.Telegram && window.Telegram.WebApp) {
-      window.Telegram.WebApp.ready();
-    }
-  }, []);
 
   const handleSplashFinished = () => {
     setShowSplash(false);
